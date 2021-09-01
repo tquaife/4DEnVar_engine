@@ -1,0 +1,4 @@
+* Read in h(x_b) seperately
+* Pass options for tolerances, max iterations and so on
+* Remove explicit inverse of R (? - although maybe slower?)
+
