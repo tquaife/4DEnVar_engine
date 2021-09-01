@@ -1,4 +1,4 @@
-* Read in h(x_b) seperately
+* Read in h(x_b) separately - i.e. non linear obs operator applied to x_b
 * Pass options for tolerances, max iterations and so on
 * Remove explicit inverse of R (? - although maybe slower?)
 

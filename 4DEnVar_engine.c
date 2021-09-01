@@ -11,7 +11,7 @@ An implementation of 4DEnVar
     gsl_vector *hx_bar ;
     gsl_matrix *X_dash_b ;
     gsl_matrix *HX_dash_b ;
-	gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
+    gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
     int nens=xb->size1;
     int status ;
     size_t iter=0;
@@ -235,7 +235,7 @@ inside this function to allow some flexibility)
 
 void print_gsl_matrix( gsl_matrix * gmat )
 /*
-Print an ascii representation of the GSL matrix gmat to the stout
+Print an ascii representation of the GSL matrix gmat to the stdout
 */
 {
 	int x, y ;
@@ -254,7 +254,7 @@ Print an ascii representation of the GSL matrix gmat to the stout
 
 void print_gsl_vector( gsl_vector * gvec )
 /*
-Print an ascii representation of the GSL matrix gmat to the stout
+Print an ascii representation of the GSL matrix gmat to the stdout
 */
 {
 	int y ;
