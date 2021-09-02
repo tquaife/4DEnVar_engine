@@ -1,3 +1,5 @@
 4DEnVar
 *.pdf
 *.o
+**/*.awk
+

@@ -15,6 +15,7 @@ class linearModelEnsemble:
     def __init__(self, coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert ):
 
         self.truth=linearModel(coefs_truth) 
+        self.prior=linearModel(coefs_prior) 
 
         self.coefs_prior=coefs_prior 
         self.uncert_prior=uncert_prior 
@@ -94,14 +95,19 @@ class linearModelEnsemble:
                     f.write("%f "%self.ensemble[n].coefs[m])
                 f.write("\n")
 
-        #predicted oservations:
+        #predicted observations from ensemble:
         with open("0hx.dat","w") as f:
             for m in range(self.nobs):
                 for n in range(self.nens):
                     f.write("%f "%self.ensemble[n].eval(self.obs_x[m]))
                 f.write("\n")
              
-
+        #predicted observations from expected value of 
+        #the prior distribution:
+        with open("0hxbar.dat","w") as f:
+            for m in range(self.nobs):
+                f.write("%f\n"%self.prior.eval(self.obs_x[m]))
+             
 
 
 if __name__=="__main__":
@@ -109,12 +115,14 @@ if __name__=="__main__":
     import subprocess
 
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
-    l=linearModelEnsemble([1.1,1.6,0.],[0.0,1.0,0.5],[0.5,0.5,2.0],20,10,0.1)
+    l=linearModelEnsemble([2.,1.1,0.],[1.,0.5,0.3],[0.1,0.1,0.1],20,10,0.01)
     #l.plot("0setup.png")
     l.write_files()
     
+    #print(l.obs_x)
+    
     #run the 4DEnVar via a subprocess
-    out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat"],capture_output=True)
+    out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
     analysis=[]    
     for s in out:

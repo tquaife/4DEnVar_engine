@@ -150,13 +150,15 @@ Calculate HXb
     gsl_matrix *R ;
     gsl_vector *y ;
 	gsl_vector *xa ;
+	gsl_vector *hx_bar ;
 	
-	xb =load_ffMatrix_to_gsl_matrix(argv[1]);
-	hx =load_ffMatrix_to_gsl_matrix(argv[2]);
-	y  =load_ffMatrix_to_gsl_vector(argv[3]);
-	R  =load_ffMatrix_to_gsl_matrix(argv[4]);
+	xb      =load_ffMatrix_to_gsl_matrix(argv[1]);
+	hx      =load_ffMatrix_to_gsl_matrix(argv[2]);
+	y       =load_ffMatrix_to_gsl_vector(argv[3]);
+	R       =load_ffMatrix_to_gsl_matrix(argv[4]);
+	hx_bar  =load_ffMatrix_to_gsl_vector(argv[5]);
 
-    xa = fourDEnVar( xb, hx, y, R );
+    xa = fourDEnVar( xb, hx, y, R, hx_bar );
 
     print_gsl_vector(xa);    
 
@@ -165,6 +167,7 @@ Calculate HXb
     gsl_matrix_free (hx);
     gsl_matrix_free (R);
     gsl_vector_free (y);
+    gsl_vector_free (hx_bar);
 
 	return( EXIT_SUCCESS );
 	

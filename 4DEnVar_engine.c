@@ -1,14 +1,14 @@
 #include<4DEnVar_engine.h>
 #include<math.h>
 
-gsl_vector * fourDEnVar( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R )
+gsl_vector * fourDEnVar( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
 /*
 An implementation of 4DEnVar
 */
 {
 
     gsl_vector *xb_bar ;
-    gsl_vector *hx_bar ;
+    //gsl_vector *hx_bar ;
     gsl_matrix *X_dash_b ;
     gsl_matrix *HX_dash_b ;
     gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
@@ -37,10 +37,16 @@ An implementation of 4DEnVar
     /*calculate the mean of each parameter 
     in the ensemble*/
     xb_bar = mean_vector_from_matrix(xb);
+    //print_gsl_vector(xb_bar);
+    //printf("***\n");
+
 
     /*mean of modelled observations*/
     /*NOTE - should be supplied separately as h(x)*/
-    hx_bar = mean_vector_from_matrix(hx);
+    //hx_bar = mean_vector_from_matrix(hx);
+    //print_gsl_vector(hx_bar);
+    //printf("***\n");
+
     
     /*calculate the perturbation matrix
     eqn 21 in Pinnington 2020*/
@@ -238,7 +244,7 @@ void print_gsl_matrix( gsl_matrix * gmat )
 Print an ascii representation of the GSL matrix gmat to the stdout
 */
 {
-	int x, y ;
+    int x, y ;
     double tmp;
 
     for( y=0; y<gmat->size1; y++ ){    
@@ -257,7 +263,7 @@ void print_gsl_vector( gsl_vector * gvec )
 Print an ascii representation of the GSL matrix gmat to the stdout
 */
 {
-	int y ;
+    int y ;
     double tmp;
 
     for( y=0; y<gvec->size; y++ ){
