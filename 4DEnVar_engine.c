@@ -105,6 +105,93 @@ An implementation of 4DEnVar
 }
 
 
+gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_matrix * R, gsl_vector * hx_bar, gsl_vector *xa )
+{
+
+    gsl_vector *xb_bar ;
+    gsl_matrix *X_dash_b ;
+    gsl_matrix *HX_dash_b ;
+    int nens=xb->size1, i=0, j=0;
+    float scale,tmp;
+
+    int signum;
+    gsl_permutation *p=gsl_permutation_alloc(R->size1);
+    gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
+    gsl_matrix *work1 = gsl_matrix_alloc(hx->size1, hx->size2);
+    gsl_matrix *work2 = gsl_matrix_calloc(hx->size2, hx->size2);
+
+    gsl_matrix *X_dash_a = gsl_matrix_alloc(xb->size1, xb->size2);
+    gsl_matrix *X_a = gsl_matrix_alloc(xb->size1, xb->size2);
+
+
+    gsl_matrix_set_identity(work2);
+
+    /*invert the R matrix*/
+    gsl_linalg_LU_decomp(R, p, &signum);
+    gsl_linalg_LU_invert(R, p, R_inv);
+
+    /*calculate the mean of each parameter 
+    in the ensemble*/
+    xb_bar = mean_vector_from_matrix(xb);
+    
+    /*calculate the perturbation matrix
+    eqn 21 in Pinnington 2020*/
+    scale=1./sqrt(nens-1);
+    X_dash_b = perturbation_matrix(xb,xb_bar,scale);
+
+    /*calculate HXb matrix
+    eqn 26 in Pinnington 2020*/
+    HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
+
+
+    /*Wa=sqrt(I+Y'b^T*R^-1*Y'b)
+    See eqn A16 in Pinnington et al. 2021
+    Note that Y'd == HX'b due to a change 
+    in nomenclature between the two papers
+    */
+
+    /*1. work1=R^-1*HX'b*/
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, R_inv, HX_dash_b, 0.0, work1);
+
+    /*2. (HX'b)^T*work1 + I
+    Note - I = work2
+    */
+     
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, HX_dash_b, work1, 1.0, work2);
+
+    /* 3. work2 now contains I+Y'b^T*R^-1*Y'b
+    so need to take square root to give Wa. 
+    Need to zero the upper left triangle as GSL
+    leaves the original matrix in there.
+    */
+
+    //print_gsl_matrix(work2);    
+
+    gsl_linalg_cholesky_decomp1(work2);  
+    for(i=0;i<work2->size1;i++)
+        for(j=i+1;j<work2->size2;j++)
+            gsl_matrix_set(work2, i, j, 0.0);
+            
+    //print_gsl_matrix(work2);    
+    
+    /*4. X'a = X'b * Wa
+    Note - work2 contains Wa.
+    */     
+
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, X_dash_b, work2, 0.0, X_dash_a);
+    
+    /*Now compute Xa=X'a+xa
+    */
+    for( i=0; i<X_dash_a->size2; i++ ){
+        for( j=0; j<X_dash_a->size1; j++ ){
+            tmp=gsl_matrix_get(X_dash_a,j,i)+gsl_vector_get(xa,j);
+            gsl_matrix_set (X_a, j, i, tmp);
+        }
+    }
+    
+    return(X_a);
+}
+
 double fourDEnVar_cost_f(const gsl_vector *w, void *p)
 {
 

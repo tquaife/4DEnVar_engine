@@ -33,11 +33,11 @@ void check_dims( gsl_matrix * gmat1, gsl_matrix * gmat2 )
 /*Check the dimensions of two GSL matrices.
 Exit with failure if they are not equal.*/
 {
-	if( (gmat1->size1 != gmat2->size1) || (gmat1->size2 != gmat2->size2) ){
-		fprintf( stderr, "%s: matrix dimensions do not match\n", __FILE__ );
-		exit( EXIT_FAILURE );
-	}
-	return ;
+    if( (gmat1->size1 != gmat2->size1) || (gmat1->size2 != gmat2->size2) ){
+        fprintf( stderr, "%s: matrix dimensions do not match\n", __FILE__ );
+        exit( EXIT_FAILURE );
+    }
+    return ;
 }
 
 
@@ -47,20 +47,20 @@ the file opening and exits with failure if open fails.
 Returns the data as a GSL matrix.
 */
 {
-	FILE * fp ;
-	double *ptr, tmp ;
-	int x, y ;
-	long xsize ; 
-	long ysize ;
-	
-	gsl_matrix *gmat ;
-	
-	if( ( fp = fopen( filename, "r" ) ) == NULL ){
-		fprintf( stderr, "%s: unable to open file %s\n", __FILE__, filename );
-		exit( EXIT_FAILURE );
-	}
-	
-	ptr=fread_ascii_ffMatrix( &xsize, &ysize, fp ) ;
+    FILE * fp ;
+    double *ptr, tmp ;
+    int x, y ;
+    long xsize ; 
+    long ysize ;
+    
+    gsl_matrix *gmat ;
+    
+    if( ( fp = fopen( filename, "r" ) ) == NULL ){
+        fprintf( stderr, "%s: unable to open file %s\n", __FILE__, filename );
+        exit( EXIT_FAILURE );
+    }
+    
+    ptr=fread_ascii_ffMatrix( &xsize, &ysize, fp ) ;
     gmat=(gsl_matrix *)gsl_matrix_alloc ( (size_t)ysize, (size_t)xsize);
 
     for( y=0; y<ysize; y++ ){
@@ -70,9 +70,9 @@ Returns the data as a GSL matrix.
         }
     }
 
-	fclose(fp);	
-	free(ptr);
-	return(gmat);
+    fclose(fp);    
+    free(ptr);
+    return(gmat);
 }
 
 gsl_vector *load_ffMatrix_to_gsl_vector( char *filename )
@@ -81,25 +81,25 @@ the file opening and exits with failure if open fails.
 Returns the data as a GSL VECTOR.
 */
 {
-	FILE * fp ;
-	double *ptr, tmp ;
-	int y ;
-	long xsize ; 
-	long ysize ;
-	
-	gsl_vector *gvec ;
-	
-	if( ( fp = fopen( filename, "r" ) ) == NULL ){
-		fprintf( stderr, "%s: unable to open file %s\n", __FILE__, filename );
-		exit( EXIT_FAILURE );
-	}
-	
-	ptr=fread_ascii_ffMatrix( &xsize, &ysize, fp ) ;
+    FILE * fp ;
+    double *ptr, tmp ;
+    int y ;
+    long xsize ; 
+    long ysize ;
+    
+    gsl_vector *gvec ;
+    
+    if( ( fp = fopen( filename, "r" ) ) == NULL ){
+        fprintf( stderr, "%s: unable to open file %s\n", __FILE__, filename );
+        exit( EXIT_FAILURE );
+    }
+    
+    ptr=fread_ascii_ffMatrix( &xsize, &ysize, fp ) ;
 
-	if( xsize>1 ){
-		fprintf( stderr, "%s: file %s should have a single column \n", __FILE__, filename );
-		exit( EXIT_FAILURE );
-	}
+    if( xsize>1 ){
+        fprintf( stderr, "%s: file %s should have a single column \n", __FILE__, filename );
+        exit( EXIT_FAILURE );
+    }
 
     gvec=(gsl_vector *)gsl_vector_alloc ( (size_t)ysize );
 
@@ -108,9 +108,9 @@ Returns the data as a GSL VECTOR.
         gsl_vector_set (gvec, y, tmp);
     }
 
-	fclose(fp);	
-	free(ptr);
-	return(gvec);
+    fclose(fp);    
+    free(ptr);
+    return(gvec);
 }
 
 
@@ -145,32 +145,37 @@ Calculate HXb
 
 */
     
-	gsl_matrix *xb ;
-	gsl_matrix *hx ;
+    gsl_matrix *xb ;
+    gsl_matrix *Xa ;
+    gsl_matrix *hx ;
     gsl_matrix *R ;
     gsl_vector *y ;
-	gsl_vector *xa ;
-	gsl_vector *hx_bar ;
-	
-	xb      =load_ffMatrix_to_gsl_matrix(argv[1]);
-	hx      =load_ffMatrix_to_gsl_matrix(argv[2]);
-	y       =load_ffMatrix_to_gsl_vector(argv[3]);
-	R       =load_ffMatrix_to_gsl_matrix(argv[4]);
-	hx_bar  =load_ffMatrix_to_gsl_vector(argv[5]);
+    gsl_vector *xa ;
+    gsl_vector *hx_bar ;
+    
+    xb      =load_ffMatrix_to_gsl_matrix(argv[1]);
+    hx      =load_ffMatrix_to_gsl_matrix(argv[2]);
+    y       =load_ffMatrix_to_gsl_vector(argv[3]);
+    R       =load_ffMatrix_to_gsl_matrix(argv[4]);
+    hx_bar  =load_ffMatrix_to_gsl_vector(argv[5]);
 
     xa = fourDEnVar( xb, hx, y, R, hx_bar );
+    Xa = fourDEnVar_sample_posterior( xb, hx, R, hx_bar, xa );
 
-    print_gsl_vector(xa);    
+    print_gsl_vector(xa);
+    printf("==================\n");
+    print_gsl_matrix(Xa);    
 
     gsl_matrix_free (xb);
     gsl_vector_free (xa);
+    gsl_matrix_free (Xa);
     gsl_matrix_free (hx);
     gsl_matrix_free (R);
     gsl_vector_free (y);
     gsl_vector_free (hx_bar);
 
-	return( EXIT_SUCCESS );
-	
+    return( EXIT_SUCCESS );
+    
 }
 
 

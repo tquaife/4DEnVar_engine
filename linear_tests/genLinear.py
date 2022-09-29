@@ -115,7 +115,7 @@ if __name__=="__main__":
     import subprocess
 
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
-    l=linearModelEnsemble([2.,1.1,0.],[1.,0.5,0.3],[0.1,0.1,0.1],20,10,0.01)
+    l=linearModelEnsemble([2.,1.1,0.],[1.,0.5,0.3],[0.2,0.2,0.2],20,10,0.01)
     #l.plot("0setup.png")
     l.write_files()
     
