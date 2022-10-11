@@ -50,7 +50,7 @@ An implementation of 4DEnVar
     
     /*calculate the perturbation matrix
     eqn 21 in Pinnington 2020*/
-    scale=1./sqrt(nens-1);
+    scale=1./sqrt((float)nens-1.);
     X_dash_b = perturbation_matrix(xb,xb_bar,scale);
 
     /*calculate HXb matrix
@@ -64,7 +64,7 @@ An implementation of 4DEnVar
     we do not need to compute the initial transformation
     into ensemble space as w is initialised as 0
         
-    As a consquence, we don't need an x0 variable. Obvs.
+    As a consequence, we don't need an x0 variable. Obvs.
     */
 
 
@@ -137,7 +137,7 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     
     /*calculate the perturbation matrix
     eqn 21 in Pinnington 2020*/
-    scale=1./sqrt(nens-1);
+    scale=1./sqrt((float)nens-1.);
     X_dash_b = perturbation_matrix(xb,xb_bar,scale);
 
     /*calculate HXb matrix
