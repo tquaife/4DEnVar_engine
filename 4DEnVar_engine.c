@@ -169,12 +169,14 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     so need to take square root to give Wa. 
     Need to zero the upper left triangle as GSL
     leaves the original matrix in there.
+    
+    DO WE NEED TO ZERO THE UL TRIANGLE?
     */
 
     gsl_linalg_cholesky_decomp1(work2);  
-    for(i=0;i<work2->size1;i++)
-        for(j=i+1;j<work2->size2;j++)
-            gsl_matrix_set(work2, i, j, 0.0);
+    //for(i=0;i<work2->size1;i++)
+    //    for(j=i+1;j<work2->size2;j++)
+    //        gsl_matrix_set(work2, i, j, 0.0);
             
 
     /*3a. Invert the square root matrix*/

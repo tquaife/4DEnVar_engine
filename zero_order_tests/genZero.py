@@ -129,11 +129,11 @@ if __name__=="__main__":
 
     import subprocess
 
-    truth=[0.7,0.5]
-    prior=[0.5,0.3]
+    truth=[1.0,1.0]
+    prior=[0.5,0.5]
     prior_uncert=[1.0,1.0]
-    nens=10
-    nobs=[1,1]
+    nens=500
+    nobs=[5,1]
     obs_uncert=[1.0,1.0]
 
     z=zeroOrderModelEnsemble(truth,prior,prior_uncert,nens,nobs,obs_uncert)
