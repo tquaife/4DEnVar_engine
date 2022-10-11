@@ -12,7 +12,7 @@ An implementation of 4DEnVar
     gsl_matrix *X_dash_b ;
     gsl_matrix *HX_dash_b ;
     gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
-    int nens=xb->size1;
+    int nens=xb->size2;
     int status ;
     size_t iter=0;
     float scale ;
@@ -111,7 +111,7 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     gsl_vector *xb_bar ;
     gsl_matrix *X_dash_b ;
     gsl_matrix *HX_dash_b ;
-    int nens=xb->size1, i=0, j=0;
+    int nens=xb->size2, i=0, j=0;
     float scale,tmp;
 
     int signum;
@@ -123,13 +123,14 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     gsl_matrix *X_dash_a = gsl_matrix_alloc(xb->size1, xb->size2);
     gsl_matrix *X_a = gsl_matrix_alloc(xb->size1, xb->size2);
 
-
     gsl_matrix_set_identity(work2);
+
 
     /*invert the R matrix*/
     gsl_linalg_LU_decomp(R, p, &signum);
     gsl_linalg_LU_invert(R, p, R_inv);
 
+    
     /*calculate the mean of each parameter 
     in the ensemble*/
     xb_bar = mean_vector_from_matrix(xb);

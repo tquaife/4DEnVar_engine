@@ -18,6 +18,9 @@ gawk '{print $2}' havainnot_t51015_1.dat > y.dat
 #R, assuming diagonal. Note: need to convert to variances
 gawk 'BEGIN{N=3}{for(i=1;i<=N;i++){if(i==NR){printf("%s ",$3*$3)}else{printf("0.00 ") }}print ""}' havainnot_t51015_1.dat > R.dat
 
+#swap some rows for testing
+cp Xb.dat Xb_orig.dat
+gawk 'NR==4{s=$0}NR!=4;END{print s}' Xb_orig.dat > Xb.dat
 
 #4DEnVar:
 ../4DEnVar Xb.dat hx.dat y.dat R.dat hx_bar.dat > OUT.$$
