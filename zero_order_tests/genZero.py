@@ -132,7 +132,7 @@ if __name__=="__main__":
     truth=[0.7,0.5]
     prior=[0.5,0.3]
     prior_uncert=[1.0,1.0]
-    nens=20
+    nens=10
     nobs=[1,1]
     obs_uncert=[1.0,1.0]
 

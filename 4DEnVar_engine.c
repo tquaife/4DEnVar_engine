@@ -114,8 +114,8 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     int nens=xb->size2, i=0, j=0;
     float scale,tmp;
 
-    int signum;
-    gsl_permutation *p=gsl_permutation_alloc(R->size1);
+    int signum_r;
+    gsl_permutation *p_r=gsl_permutation_alloc(R->size1);
     gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
     gsl_matrix *work1 = gsl_matrix_alloc(hx->size1, hx->size2);
     gsl_matrix *work2 = gsl_matrix_calloc(hx->size2, hx->size2);
@@ -123,12 +123,17 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     gsl_matrix *X_dash_a = gsl_matrix_alloc(xb->size1, xb->size2);
     gsl_matrix *X_a = gsl_matrix_alloc(xb->size1, xb->size2);
 
+    int signum_w;
+    gsl_permutation *p_w=gsl_permutation_alloc(hx->size2);
+    gsl_matrix *W_inv = gsl_matrix_calloc(hx->size2, hx->size2);
+
+
     gsl_matrix_set_identity(work2);
 
 
     /*invert the R matrix*/
-    gsl_linalg_LU_decomp(R, p, &signum);
-    gsl_linalg_LU_invert(R, p, R_inv);
+    gsl_linalg_LU_decomp(R, p_r, &signum_r);
+    gsl_linalg_LU_invert(R, p_r, R_inv);
 
     
     /*calculate the mean of each parameter 
@@ -155,7 +160,7 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, R_inv, HX_dash_b, 0.0, work1);
 
     /*2. (HX'b)^T*work1 + I
-    Note - I = work2
+    Note: work2 = I
     */
      
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, HX_dash_b, work1, 1.0, work2);
@@ -166,26 +171,28 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     leaves the original matrix in there.
     */
 
-    //print_gsl_matrix(work2);    
-
     gsl_linalg_cholesky_decomp1(work2);  
     for(i=0;i<work2->size1;i++)
         for(j=i+1;j<work2->size2;j++)
             gsl_matrix_set(work2, i, j, 0.0);
             
-    //print_gsl_matrix(work2);    
-    
+
+    /*3a. Invert the square root matrix*/
+    gsl_linalg_LU_decomp(work2, p_w, &signum_w);
+    gsl_linalg_LU_invert(work2, p_w, W_inv);
+
+        
     /*4. X'a = X'b * Wa
     Note - work2 contains Wa.
     */     
 
-    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, X_dash_b, work2, 0.0, X_dash_a);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, X_dash_b, W_inv, 0.0, X_dash_a);
     
     /*Now compute Xa=X'a+xa
     */
     for( i=0; i<X_dash_a->size2; i++ ){
         for( j=0; j<X_dash_a->size1; j++ ){
-            tmp=gsl_matrix_get(X_dash_a,j,i)+gsl_vector_get(xa,j);
+            tmp=gsl_matrix_get(X_dash_a,j,i)/scale+gsl_vector_get(xa,j);
             gsl_matrix_set (X_a, j, i, tmp);
         }
     }
