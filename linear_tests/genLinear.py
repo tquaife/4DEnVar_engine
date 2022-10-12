@@ -115,19 +115,21 @@ if __name__=="__main__":
     import subprocess
 
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
-    l=linearModelEnsemble([2.,1.1,0.],[1.,0.5,0.3],[0.2,0.2,0.2],20,10,0.01)
-    #l.plot("0setup.png")
+    truth=[2.,1.1,0.]
+    l=linearModelEnsemble(truth,[1.,0.5,0.3],[0.2,0.2,0.2],20,10,0.01)
     l.write_files()
-    
-    #print(l.obs_x)
-    
+        
     #run the 4DEnVar via a subprocess
     out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
+
+    #read the results of the analysis
     analysis=[]    
-    for s in out:
-        analysis.append(float(s))
+    for i in range(len(truth)):
+        analysis.append(float(out[i]))
+            
     print(analysis)
-    l.plot(filename="linear_example.png",analysis=analysis)
+    #l.plot(filename="linear_example.png",analysis=analysis)
+    l.plot(analysis=analysis)
 
 
