@@ -13,6 +13,8 @@ class zeroOrderModelEnsemble:
         self.uncert_prior=uncert_prior 
         self.obs_uncert=obs_uncert
         
+        self.perturb_obs=True
+        
         self.nobs=nobs
         self.nens=nens
               
@@ -31,8 +33,10 @@ class zeroOrderModelEnsemble:
         self.obs=[]
         for n in range(len(self.nobs)):
             tmp=np.ones(self.nobs[n])*self.truth[n]
-            self.obs.append(tmp+self.obs_uncert[n]*np.random.randn(len(tmp)))
-            
+            if self.perturb_obs:
+                self.obs.append(tmp+self.obs_uncert[n]*np.random.randn(len(tmp)))
+            else:
+                self.obs.append(tmp)
         
     def plot(self,filename=None,analysis=None,full_posterior=None):
 
@@ -137,6 +141,8 @@ if __name__=="__main__":
     obs_uncert=[1.0,1.0]
 
     z=zeroOrderModelEnsemble(truth,prior,prior_uncert,nens,nobs,obs_uncert)
+    z.perturb_obs=False
+    z.gen_obs()
     z.write_files()
     #z.plot()
 
@@ -156,7 +162,7 @@ if __name__=="__main__":
         for j in range(nens):
             posterior[j,i]=float(line[j])
 
-        print(np.std(posterior[:,i]))    
+        print(np.std(z.ensemble[:,i]),np.std(posterior[:,i]))    
 
     z.plot(analysis=analysis,full_posterior=posterior)
 

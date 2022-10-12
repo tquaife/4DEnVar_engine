@@ -142,7 +142,8 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     
     /*calculate the perturbation matrix
     eqn 21 in Pinnington 2020*/
-    scale=1./sqrt((float)nens-1.);
+    //scale=1./sqrt((float)nens-1.);
+    scale=1.;
     X_dash_b = perturbation_matrix(xb,xb_bar,scale);
 
     /*calculate HXb matrix
@@ -161,9 +162,12 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
 
     /*2. (HX'b)^T*work1 + I
     Note: work2 = I
+    Note: use use of scale here differs from Pinnington et al. 2021
     */
-     
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, HX_dash_b, work1, 1.0, work2);
+    
+    scale=1./((float)nens-1.); 
+    //gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, HX_dash_b, work1, 1.0, work2);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, scale, HX_dash_b, work1, 1.0, work2);
 
     /* 3. work2 now contains I+Y'b^T*R^-1*Y'b
     so need to take square root to give Wa. 
@@ -194,7 +198,7 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     */
     for( i=0; i<X_dash_a->size2; i++ ){
         for( j=0; j<X_dash_a->size1; j++ ){
-            tmp=gsl_matrix_get(X_dash_a,j,i)/scale+gsl_vector_get(xa,j);
+            tmp=gsl_matrix_get(X_dash_a,j,i)+gsl_vector_get(xa,j);
             gsl_matrix_set (X_a, j, i, tmp);
         }
     }
