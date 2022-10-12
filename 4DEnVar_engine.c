@@ -3,7 +3,7 @@
 
 gsl_vector * fourDEnVar( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
 /*
-An implementation of 4DEnVar
+An implementation of 4DEnVar as described in: Pinnington, E., Quaife, T., Lawless, A., Williams, K., Arkebauer, T., and Scoby, D.: The Land Variational Ensemble Data Assimilation Framework: LAVENDAR v1.0.0, Geosci. Model Dev., 13, 55–69, https://doi.org/10.5194/gmd-13-55-2020, 2020.
 */
 {
 
@@ -37,17 +37,11 @@ An implementation of 4DEnVar
     /*calculate the mean of each parameter 
     in the ensemble*/
     xb_bar = mean_vector_from_matrix(xb);
-    //print_gsl_vector(xb_bar);
-    //printf("***\n");
-
 
     /*mean of modelled observations*/
-    /*NOTE - should be supplied separately as h(x)*/
+    /*NOTE - now supplied separately as h(x)*/
     //hx_bar = mean_vector_from_matrix(hx);
-    //print_gsl_vector(hx_bar);
-    //printf("***\n");
 
-    
     /*calculate the perturbation matrix
     eqn 21 in Pinnington 2020*/
     scale=1./sqrt((float)nens-1.);
@@ -57,8 +51,6 @@ An implementation of 4DEnVar
     eqn 26 in Pinnington 2020
     */
     HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
-    //print_gsl_matrix(HX_dash_b);
-
 
     /*n.b. as we are setting x0=xb_bar then w=0 so
     we do not need to compute the initial transformation
@@ -104,6 +96,13 @@ An implementation of 4DEnVar
 
 
 gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_matrix * R, gsl_vector * hx_bar, gsl_vector *xa )
+/*
+Compute the posterior probability distribution for the 4DEnVar analysis.
+
+Implements the method described in the appendix of: Pinnington, E., Amezcua, J., Cooper, E., Dadson, S., Ellis, R., Peng, J., Robinson, E., Morrison, R., Osborne, S., and Quaife, T.: Improving soil moisture prediction of a high-resolution land surface model by parameterising pedotransfer functions through assimilation of SMAP satellite data, Hydrol. Earth Syst. Sci., 25, 1617–1641, https://doi.org/10.5194/hess-25-1617-2021, 2021.
+
+Corrects some errors from that paper.
+*/
 {
 
     gsl_vector *xb_bar ;
@@ -175,8 +174,8 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     Need to zero the upper left triangle as GSL
     leaves the original matrix in there.
     
-    (n.b. tested the zeroing of the UL by
-    confirming it was necessary to make A=LL^T)
+    (n.b. tested the zeroing of the UL was needed 
+    by confirming it was necessary to make A=LL^T)
     */
 
     gsl_linalg_cholesky_decomp1(work2);  
@@ -189,14 +188,10 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     gsl_linalg_LU_invert(work2, p_w, Wa);
 
         
-    /*4. X'a = X'b * Wa
-    Note - work2 contains Wa.
-    */     
-
+    /*4. X'a = X'b * Wa*/     
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, X_dash_b, Wa, 0.0, X_dash_a);
     
-    /*Now compute Xa=X'a+xa
-    */
+    /*Now compute Xa=X'a+xa*/
     for( i=0; i<X_dash_a->size2; i++ ){
         for( j=0; j<X_dash_a->size1; j++ ){
             tmp=gsl_matrix_get(X_dash_a,j,i)+gsl_vector_get(xa,j);
