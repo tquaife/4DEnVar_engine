@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from  scipy.stats import gaussian_kde as kde
-
+import scipy.stats as stats
 
 
 class zeroOrderModelEnsemble:
@@ -24,7 +24,7 @@ class zeroOrderModelEnsemble:
     def gen_prior_ensemble(self):
         self.ensemble=np.zeros([self.nens,len(self.truth)])
         for n in range(self.nens):
-            self.ensemble[n,:]=self.prior+self.uncert_prior*np.random.randn(len(self.prior))
+            self.ensemble[n,:]=self.prior+np.sqrt(self.uncert_prior)*np.random.randn(len(self.prior))
         
     def gen_obs(self):
         
@@ -34,14 +34,14 @@ class zeroOrderModelEnsemble:
         for n in range(len(self.nobs)):
             tmp=np.ones(self.nobs[n])*self.truth[n]
             if self.perturb_obs:
-                self.obs.append(tmp+self.obs_uncert[n]*np.random.randn(len(tmp)))
+                self.obs.append(tmp+np.sqrt(self.obs_uncert[n])*np.random.randn(len(tmp)))
             else:
                 self.obs.append(tmp)
         
     def plot(self,filename=None,analysis=None,full_posterior=None):
 
         for n in range(len(self.truth)):
-            k_prior=kde(self.ensemble[:,n])
+            k_prior=kde(self.ensemble[:,n],bw_method='silverman')
     
             #work out plot positions for KDE
             mn=np.min(self.ensemble[:,n])
@@ -52,9 +52,25 @@ class zeroOrderModelEnsemble:
    
             plt.fill_between(positions,k_prior(positions),label="prior",alpha=0.5)
 
+            #add analytical distribution:
+            plt.plot(positions, stats.norm.pdf(positions, prior[n], np.sqrt(prior_uncert[n])))
+            
             if full_posterior is not None:
-                k_post=kde(full_posterior[:,n])
+                k_post=kde(full_posterior[:,n],bw_method='silverman')
                 plt.fill_between(positions,k_post(positions),label="posterior",alpha=0.5)
+
+                #calculate analytical posterior
+                p=self.uncert_prior[n]
+                r=self.obs_uncert[n]
+                x=self.prior[n]
+                for m in range(self.nobs[n]):
+                    y=self.obs[n][m]
+                    k=p/(p+r)
+                    x=x+k*(y-x)
+                    p=(1-k)*p
+                #plot analytical posterior
+                plt.plot(positions, stats.norm.pdf(positions, x, np.sqrt(p)))
+
 
             #add prior mean and truth
             ymn=plt.gca().get_ylim()[0]
@@ -133,25 +149,24 @@ if __name__=="__main__":
 
     import subprocess
 
-    truth=[1.0,1.0]
-    prior=[0.5,0.5]
-    prior_uncert=[1.0,1.0]
-    nens=500
-    nobs=[5,1]
-    obs_uncert=[1.0,1.0]
+    #all uncertainties are in variances
+    truth=[5.0,5.0]
+    prior=[1.0,1.0]
+    prior_uncert=[4.0,4.0]
+    nens=200
+    nobs=[1,4]
+    obs_uncert=[4.0,4.0]
 
     z=zeroOrderModelEnsemble(truth,prior,prior_uncert,nens,nobs,obs_uncert)
     z.perturb_obs=False
     z.gen_obs()
     z.write_files()
-    #z.plot()
 
     #run the 4DEnVar via a subprocess
     out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
-    #print(out)
-   
+    #parse output
     analysis=[]
     for i in range(len(truth)):
         analysis.append(float(out[i]))

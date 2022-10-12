@@ -62,11 +62,9 @@ An implementation of 4DEnVar
 
     /*n.b. as we are setting x0=xb_bar then w=0 so
     we do not need to compute the initial transformation
-    into ensemble space as w is initialised as 0
-        
+    into ensemble space as w is initialised as 0.        
     As a consequence, we don't need an x0 variable. Obvs.
     */
-
 
     /*set up structure holding everything
     needed to calculate the cost function #
@@ -117,39 +115,42 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     int signum_r;
     gsl_permutation *p_r=gsl_permutation_alloc(R->size1);
     gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
+    int signum_w;
+    gsl_permutation *p_w=gsl_permutation_alloc(hx->size2);
+    gsl_matrix *Wa = gsl_matrix_calloc(hx->size2, hx->size2);
+
     gsl_matrix *work1 = gsl_matrix_alloc(hx->size1, hx->size2);
     gsl_matrix *work2 = gsl_matrix_calloc(hx->size2, hx->size2);
 
     gsl_matrix *X_dash_a = gsl_matrix_alloc(xb->size1, xb->size2);
     gsl_matrix *X_a = gsl_matrix_alloc(xb->size1, xb->size2);
 
-    int signum_w;
-    gsl_permutation *p_w=gsl_permutation_alloc(hx->size2);
-    gsl_matrix *W_inv = gsl_matrix_calloc(hx->size2, hx->size2);
 
-
+    /*set I*/
     gsl_matrix_set_identity(work2);
-
 
     /*invert the R matrix*/
     gsl_linalg_LU_decomp(R, p_r, &signum_r);
     gsl_linalg_LU_invert(R, p_r, R_inv);
-
     
     /*calculate the mean of each parameter 
     in the ensemble*/
     xb_bar = mean_vector_from_matrix(xb);
     
     /*calculate the perturbation matrix
-    eqn 21 in Pinnington 2020*/
-    //scale=1./sqrt((float)nens-1.);
+    eqn 21 in Pinnington 2020
+    
+    Note - that paper applies a scaling of:
+    scale=1./sqrt((float)nens-1.);
+    but that is error. Here using scale=1.
+    See also step (2) below.
+    */
     scale=1.;
     X_dash_b = perturbation_matrix(xb,xb_bar,scale);
 
     /*calculate HXb matrix
     eqn 26 in Pinnington 2020*/
     HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
-
 
     /*Wa=sqrt(I+Y'b^T*R^-1*Y'b)
     See eqn A16 in Pinnington et al. 2021
@@ -163,10 +164,10 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     /*2. (HX'b)^T*work1 + I
     Note: work2 = I
     Note: use use of scale here differs from Pinnington et al. 2021
+    the equations in the appendix of that paper appear to be incorrect
     */
     
     scale=1./((float)nens-1.); 
-    //gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, HX_dash_b, work1, 1.0, work2);
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, scale, HX_dash_b, work1, 1.0, work2);
 
     /* 3. work2 now contains I+Y'b^T*R^-1*Y'b
@@ -174,25 +175,25 @@ gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_
     Need to zero the upper left triangle as GSL
     leaves the original matrix in there.
     
-    DO WE NEED TO ZERO THE UL TRIANGLE?
+    (n.b. tested the zeroing of the UL by
+    confirming it was necessary to make A=LL^T)
     */
 
     gsl_linalg_cholesky_decomp1(work2);  
-    //for(i=0;i<work2->size1;i++)
-    //    for(j=i+1;j<work2->size2;j++)
-    //        gsl_matrix_set(work2, i, j, 0.0);
+    for(i=0;i<work2->size1;i++)
+        for(j=i+1;j<work2->size2;j++)
+           gsl_matrix_set(work2, i, j, 0.0);
             
-
     /*3a. Invert the square root matrix*/
     gsl_linalg_LU_decomp(work2, p_w, &signum_w);
-    gsl_linalg_LU_invert(work2, p_w, W_inv);
+    gsl_linalg_LU_invert(work2, p_w, Wa);
 
         
     /*4. X'a = X'b * Wa
     Note - work2 contains Wa.
     */     
 
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, X_dash_b, W_inv, 0.0, X_dash_a);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, X_dash_b, Wa, 0.0, X_dash_a);
     
     /*Now compute Xa=X'a+xa
     */

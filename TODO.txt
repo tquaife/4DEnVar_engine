@@ -1,6 +1,7 @@
 * Read in h(x_b) separately - i.e. non linear obs operator applied to x_b
   -> DONE. Needs some experiments to check impact. 
-* Pass options for tolerances, max iterations and so on
-* Remove explicit inverse of R (? - although maybe slower?)
 * Calculate full posterior
+  -> DONE. Resolved some problems with original algorithm.
 
+* Pass options for tolerances, max iterations and so on
+* Test inverse square root of matrix is performing correctly
