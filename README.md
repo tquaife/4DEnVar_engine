@@ -17,7 +17,6 @@ An implementation of 4DEnVar as described in: Pinnington, E., Quaife, T., Lawles
 arguments:
 
 gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
-
 gsl_matrix * hx     --- the ensmble of model predicted observations (n_obs cols; e_ens rows)
 
 gsl_vector * y      --- the observations (n_obs rows)
