@@ -7,8 +7,9 @@ The core tools for solving the data assimilation problem are in the file 4DEnVar
 
 ![Example of the solver](linear_tests/linear_example.png)
 
-There are two main functions:
+## Main functions:
 
+```
 gsl_vector * fourDEnVar( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
 
 An implementation of 4DEnVar as described in: Pinnington, E., Quaife, T., Lawless, A., Williams, K., Arkebauer, T., and Scoby, D.: The Land Variational Ensemble Data Assimilation Framework: LAVENDAR v1.0.0, Geosci. Model Dev., 13, 55–69, https://doi.org/10.5194/gmd-13-55-2020, 2020.
@@ -28,7 +29,7 @@ gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_o
 returns:
 
 gsl_vector * xa     --- the analysis vector (n_dims rows)
-`
+``
 
 
 gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_matrix * R, gsl_vector * hx_bar, gsl_vector *xa )
