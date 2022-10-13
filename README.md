@@ -5,12 +5,15 @@ and the computation of the posterior PDF [Pinnington et al. (2021)](https://doi.
 The contents of 4DEnVar.c are an example interface only (i.e. this should be adapted to your own problem). 
 The core tools for solving the data assimilation problem are in the file 4DEnVar_engine.c.
 
-
 ## Simple example:
+
+The following figure shows an example using the code to fit a simple polynomial model. Grey lines are the background ensemble, the red line represents the "truth", red dots are the observations and the green line is the posterior estimate. In this example the observations have relatively low uncertainty and hence the green line comes close to the truth. The code to reproduce this experiment is in the linear_tests directory. [Note - this is purely for demonstration purposes - there are plenty of better techniques for fitting polynomials to data!]
 
 ![Example of the solver](linear_tests/linear_example.png)
 
-## Main functions:
+## Core functions:
+
+The following functions provide the core functionality on which applications can be built. 
 
 ### gsl_vector * fourDEnVar( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
 
@@ -46,7 +49,6 @@ gsl_vector * xa     --- the analysis vector (n_dims rows) [i.e. as returned from
 returns:
 
 gsl_matrix * X_a    --- the analysis ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
-
 
 
 
