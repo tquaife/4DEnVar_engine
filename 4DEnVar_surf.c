@@ -124,55 +124,56 @@ Returns the data as a GSL VECTOR.
 int main( int argc, char **argv )
 {
 
-
 /*
 We need as input:
 
-x  - parameter ensemble matrix
-hx - matrix of predicted observations 
-R  - observation uncertainty matrix
-y  - observation vector
-
-Optional:
-
+x      - parameter ensemble matrix
+hx     - matrix of predicted observations 
+R      - observation uncertainty matrix
+y      - observation vector
 hx_bar - vector of predicted observations from mean parameters
-
-Processing:
-
-Calculate Xb from x
-Calculate w
-Calculate HXb
+x_eval - parameter combinations at which to evaluate to cost function
 
 */
     
     gsl_matrix *xb ;
-    gsl_matrix *Xa ;
     gsl_matrix *hx ;
     gsl_matrix *R ;
     gsl_vector *y ;
-    gsl_vector *xa ;
     gsl_vector *hx_bar ;
+    gsl_matrix *x_eval_matrix ;
+    gsl_vector *x_eval_vector ;
+    
+    double J, tmp;
+    int i, j;
     
     xb      =load_ffMatrix_to_gsl_matrix(argv[1]);
     hx      =load_ffMatrix_to_gsl_matrix(argv[2]);
     y       =load_ffMatrix_to_gsl_vector(argv[3]);
     R       =load_ffMatrix_to_gsl_matrix(argv[4]);
     hx_bar  =load_ffMatrix_to_gsl_vector(argv[5]);
+   
+    x_eval_matrix =load_ffMatrix_to_gsl_matrix(argv[6]);
+    x_eval_vector =(gsl_vector *)gsl_vector_alloc(x_eval_matrix->size2);
 
-    xa = fourDEnVar( xb, hx, y, R, hx_bar );
-    Xa = fourDEnVar_sample_posterior( xb, hx, R, hx_bar, xa );
-
-    print_gsl_vector(xa);
-    printf("==================\n");
-    print_gsl_matrix(Xa);    
-
+    for(i=0; i<x_eval_matrix->size1; i++){
+        for(j=0; j<x_eval_matrix->size2; j++){
+            tmp=gsl_matrix_get(x_eval_matrix,i,j);
+            printf("%lf ", tmp);
+            gsl_vector_set(x_eval_vector,j,tmp);
+        }    
+        J = fourDEnVar_JEval( xb, hx, y, R, hx_bar, x_eval_vector );
+        printf("%lf\n", J);
+    }
+    
     gsl_matrix_free (xb);
-    gsl_vector_free (xa);
-    gsl_matrix_free (Xa);
     gsl_matrix_free (hx);
     gsl_matrix_free (R);
     gsl_vector_free (y);
     gsl_vector_free (hx_bar);
+    gsl_matrix_free (x_eval_matrix);    
+    gsl_vector_free (x_eval_vector);
+
 
     return( EXIT_SUCCESS );
     

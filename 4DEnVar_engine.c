@@ -1,6 +1,72 @@
 #include<4DEnVar_engine.h>
 #include<math.h>
 
+
+double fourDEnVar_JEval( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar, gsl_vector * x_eval )
+/*
+Return the value of the cost function (J) for the parameters in x
+*/
+{
+    double J=0.0;
+    float scale ;
+    int nens=xb->size2;
+    int signum;
+    
+    gsl_matrix *HX_dash_b ;
+    gsl_matrix *X_dash_b ;
+    gsl_vector *xb_bar ;
+    gsl_vector *w = gsl_vector_calloc(xb->size2) ;     
+    gsl_vector *residual = gsl_vector_calloc(xb->size1) ;     
+    gsl_vector *tau = gsl_vector_calloc(xb->size1) ;     
+    gsl_permutation *p=gsl_permutation_alloc(R->size1);
+    gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
+
+    fourDEnVar_cost_function_vars cost_vars;
+
+    /*invert the R matrix*/
+    gsl_linalg_LU_decomp(R, p, &signum);
+    gsl_linalg_LU_invert(R, p, R_inv);
+
+    /*calculate the mean of each parameter 
+    in the ensemble*/
+    xb_bar = mean_vector_from_matrix(xb);
+        
+    /*calculate the perturbation matrix
+    eqn 21 in Pinnington 2020*/
+    scale=1./sqrt((float)nens-1.);
+    X_dash_b = perturbation_matrix(xb,xb_bar,scale); 
+        
+    /*calculate HXb matrix
+    eqn 26 in Pinnington 2020*/
+    HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
+
+    /*set up structure holding everything
+    needed to calculate the cost function #
+    (other than w)*/
+    cost_vars.R_inv=R_inv;
+    cost_vars.HX_dash_b=HX_dash_b;
+    cost_vars.hx_bar=hx_bar;
+    cost_vars.y=y;
+
+    /*calculate w from x_eval
+    From:
+    x=xb+X'b*w
+    */
+    
+    /*calc x-xb*/
+    gsl_vector_sub(x_eval, xb_bar);
+    /*calc the LQ decomposition of X'b*/
+    gsl_linalg_LQ_decomp(X_dash_b, tau);
+    /*find w that corresponds to x
+    note that x_eval and X_dash_b have
+    been modified by the above function calls*/
+    gsl_linalg_LQ_lssolve(X_dash_b, tau, x_eval, w, residual);
+    
+    J=fourDEnVar_cost_f(w, &cost_vars);
+    return(J);
+
+}
+
 gsl_vector * fourDEnVar( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
 /*
 An implementation of 4DEnVar as described in: Pinnington, E., Quaife, T., Lawless, A., Williams, K., Arkebauer, T., and Scoby, D.: The Land Variational Ensemble Data Assimilation Framework: LAVENDAR v1.0.0, Geosci. Model Dev., 13, 55–69, https://doi.org/10.5194/gmd-13-55-2020, 2020.

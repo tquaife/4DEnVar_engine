@@ -128,21 +128,11 @@ int main( int argc, char **argv )
 /*
 We need as input:
 
-x  - parameter ensemble matrix
-hx - matrix of predicted observations 
-R  - observation uncertainty matrix
-y  - observation vector
-
-Optional:
-
+x      - parameter ensemble matrix
+hx     - matrix of predicted observations 
+R      - observation uncertainty matrix
+y      - observation vector
 hx_bar - vector of predicted observations from mean parameters
-
-Processing:
-
-Calculate Xb from x
-Calculate w
-Calculate HXb
-
 */
     
     gsl_matrix *xb ;
