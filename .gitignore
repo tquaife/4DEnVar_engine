@@ -1,5 +1,9 @@
 4DEnVar
+4DEnVar_surf
 *.pdf
 *.o
+*~
 **/*.awk
+**/*.old
+**/__pycache__
 
