@@ -403,6 +403,7 @@ double fourDEnVar_cost_f_error_surface(const gsl_vector *w, void *p)
     gsl_blas_ddot(work1, work2, &obs_term);
     
     J=0.5*bgrnd_term+0.5*obs_term;    
+    J=0.5*bgrnd_term;    
     return(J);    
 }
 

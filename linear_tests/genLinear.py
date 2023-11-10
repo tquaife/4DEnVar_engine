@@ -12,7 +12,7 @@ class linearModel:
 
 class linearModelEnsemble:
 
-    def __init__(self, coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert ):
+    def __init__(self, coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert, rand_obs_y ):
 
         self.truth=linearModel(coefs_truth) 
         self.prior=linearModel(coefs_prior) 
@@ -26,6 +26,7 @@ class linearModelEnsemble:
               
         self.range=(0,1)
         self.rand_obs_x=False
+        self.rand_obs_y=rand_obs_y
 
         self.gen_prior_ensemble()
         self.gen_obs()
@@ -47,8 +48,11 @@ class linearModelEnsemble:
             b=self.range[1]
             step=(b-a)/self.nobs
             self.obs_x=np.arange(a+step/2.,b,step)
-        self.obs_y=self.truth.eval(self.obs_x)+np.random.randn(self.nobs)*self.obs_uncert
-
+        if self.rand_obs_y:
+            self.obs_y=self.truth.eval(self.obs_x)+np.random.randn(self.nobs)*self.obs_uncert
+        else:
+            self.obs_y=self.truth.eval(self.obs_x)
+            
     def plot(self,filename=None,analysis=None):
         a=self.range[0]
         b=self.range[1]

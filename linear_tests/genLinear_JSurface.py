@@ -7,17 +7,17 @@ import sys
 
 class linearModelEnsemble_JSurf(linearModelEnsemble):
 
-    def __init__(self, coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert ):
-        super().__init__( coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert )
+    def __init__(self, coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert, rand_obs_y=True ):
+        super().__init__( coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert, rand_obs_y )
         self.R_inv=self.get_R_inv()
         self.B_inv=self.get_B_inv()
 
     def surface_looper(self, range1, range2):
+        """an iterator to loop across the error surface"""
         start,stop,step=range1
         range1=np.arange(start,stop,step)
         start,stop,step=range2
         range2=np.arange(start,stop,step)
-        surf=np.zeros((len(range1),len(range2)))
         for (n,i) in enumerate(range1):
             for (m,j) in enumerate(range2):                
                 yield (n,m,i,j)       
@@ -42,8 +42,7 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
 
     def get_J_4DVar(self, params):
         """get the value of the 4DVar cost function
-        at position x
-        """
+        at position given by params"""
         #background term:
         t1=np.matmul(self.B_inv, np.asarray(params)-np.asarray(self.coefs_prior))
         t1=np.matmul(np.asarray(params)-np.asarray(self.coefs_prior), t1)
@@ -51,7 +50,9 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
         hx=linearModel(params)
         t2=np.matmul(self.R_inv, np.asarray(hx.eval(self.obs_x))-np.asarray(self.obs_y))
         t2=np.matmul(np.asarray(hx.eval(self.obs_x))-np.asarray(self.obs_y), t2)
-        return((t1+t2)/2.)
+        
+        return(t1/2.)
+        #return((t1+t2)/2.)
     
     def get_JSurface_4DVar(self, dims=(0,1),range1=(0,2,0.1),range2=(0,2,0.1)):
         surf=self.get_blank_surface(range1,range2)
