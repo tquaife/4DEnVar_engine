@@ -91,9 +91,9 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
     
         fig, (ax1, ax2) = plt.subplots(1, 2)
         
-        ax1.imshow(surf_4DVar, cmap='tab20c', extent=[range1[0],range1[1],range2[0],range2[1]])
+        ax1.imshow(surf_4DVar, cmap='tab20c', vmin=minmin, vmax=maxmax, extent=[range1[0],range1[1],range2[0],range2[1]])
         ax1.set_title("4DVar") 
-        ax2.imshow(surf_4DEnVar, cmap='tab20c', extent=[range1[0],range1[1],range2[0],range2[1]])
+        ax2.imshow(surf_4DEnVar, cmap='tab20c', vmin=minmin, vmax=maxmax, extent=[range1[0],range1[1],range2[0],range2[1]])
         ax2.set_title("4DEnVar") 
         
         plt.savefig("jSurf_compare.png")
