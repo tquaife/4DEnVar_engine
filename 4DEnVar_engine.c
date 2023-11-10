@@ -44,6 +44,7 @@ Return the value of the cost function (J) for the parameters in x
     needed to calculate the cost function #
     (other than w)*/
     cost_vars.R_inv=R_inv;
+    cost_vars.X_dash_b=X_dash_b;
     cost_vars.HX_dash_b=HX_dash_b;
     cost_vars.hx_bar=hx_bar;
     cost_vars.y=y;
@@ -62,7 +63,8 @@ Return the value of the cost function (J) for the parameters in x
     been modified by the above function calls*/
     gsl_linalg_LQ_lssolve(X_dash_b, tau, x_eval, w, residual);
     
-    J=fourDEnVar_cost_f(w, &cost_vars);
+    //J=fourDEnVar_cost_f(w, &cost_vars);
+    J=fourDEnVar_cost_f_error_surface(w, &cost_vars);
     return(J);
 
 }
@@ -335,6 +337,75 @@ double fourDEnVar_cost_f(const gsl_vector *w, void *p)
     J=0.5*bgrnd_term+0.5*obs_term;    
     return(J);    
 }
+
+
+double fourDEnVar_cost_f_error_surface(const gsl_vector *w, void *p)
+{
+
+    double bgrnd_term ; 
+    double obs_term ; 
+
+    double J;
+    
+    const gsl_vector *hx_bar    = ((fourDEnVar_cost_function_vars *) p)->hx_bar;
+    const gsl_vector *y         = ((fourDEnVar_cost_function_vars *) p)->y;
+    const gsl_matrix *R_inv     = ((fourDEnVar_cost_function_vars *) p)->R_inv;
+    const gsl_matrix *X_dash_b  = ((fourDEnVar_cost_function_vars *) p)->X_dash_b;
+    const gsl_matrix *HX_dash_b = ((fourDEnVar_cost_function_vars *) p)->HX_dash_b;
+
+    gsl_matrix *B = gsl_matrix_alloc(X_dash_b->size1,X_dash_b->size1) ;
+    gsl_matrix *B_inv = gsl_matrix_alloc(X_dash_b->size1,X_dash_b->size1) ;
+
+    int signum_r;
+    gsl_permutation *p_r=gsl_permutation_alloc(B->size1);
+    
+    gsl_vector * work1=gsl_vector_alloc(y->size) ;
+    gsl_vector * work2=gsl_vector_alloc(y->size) ;
+
+    gsl_vector * work3=gsl_vector_alloc(B->size1) ;
+    gsl_vector * work4=gsl_vector_alloc(B->size1) ;
+
+
+    /* B^-1 */
+    //fprintf(stderr,"%ld %ld %ld %ld\n",X_dash_b->size1,X_dash_b->size2,w->size,B->size1 );
+    //fflush(stderr);
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, X_dash_b, X_dash_b, 0.0, B);
+    gsl_linalg_LU_decomp(B, p_r, &signum_r);
+    gsl_linalg_LU_invert(B, p_r, B_inv);
+
+    /* X'b*w */
+    //fprintf(stderr,"%ld %ld %ld %ld\n",X_dash_b->size1,X_dash_b->size2,w->size,work3->size );
+    //fflush(stderr);
+    gsl_blas_dgemv(CblasNoTrans, 1.0, X_dash_b, w, 0.0, work3);
+
+    /* B^-1*(X'b*w) -> B^-1*work3 */    
+    gsl_blas_dgemv(CblasTrans, 1.0, B_inv, work3, 0.0, work4);
+
+    /* (X'b*w)^T*B^-1*(X'b*w) -> work3*work4 */    
+    gsl_blas_ddot(work3, work4, &bgrnd_term);
+
+    /* hx-y */    
+    gsl_vector_memcpy(work1,hx_bar);
+    gsl_blas_daxpy(-1.,y,work1);    
+
+    /* Hx'b * w + (hx-y)*/   
+    /* work1 should be hx-y*/
+    gsl_blas_dgemv(CblasNoTrans, 1.0, HX_dash_b, w, 1.0, work1);
+
+    /* R^-1*(HX'b*w+hx-y) */
+    /* work1 should now be (HX'b*w+hx-y)*/
+    gsl_vector_memcpy(work2,work1);
+    gsl_blas_dgemv(CblasTrans, 1.0, R_inv, work2, 0.0, work1);
+    
+    /*full observation error term*/
+    /* work1 should now be R^-1*(HX'b*w+hx-y)*/
+    /* work2 should now be (HX'b*w+hx-y)*/
+    gsl_blas_ddot(work1, work2, &obs_term);
+    
+    J=0.5*bgrnd_term+0.5*obs_term;    
+    return(J);    
+}
+
 
 void fourDEnVar_cost_df(const gsl_vector *w, void *p, gsl_vector *df)
 {
