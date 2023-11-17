@@ -20,15 +20,11 @@ double fourDEnVar_cost_f(const gsl_vector *, void *);
 void fourDEnVar_cost_df(const gsl_vector *, void *, gsl_vector *);
 void fourDEnVar_cost_fdf (const gsl_vector *, void *, double *, gsl_vector *);
 
-double fourDEnVar_cost_f_error_surface(const gsl_vector *, void *);
-
 typedef struct  {
 
     gsl_vector * y; 
     gsl_vector * hx_bar; 
     gsl_matrix * R_inv;
-    //only need for the new error surfaces:
-    gsl_matrix * X_dash_b;
     gsl_matrix * HX_dash_b;
 
 } fourDEnVar_cost_function_vars ;

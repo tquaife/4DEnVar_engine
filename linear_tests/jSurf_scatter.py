@@ -13,7 +13,7 @@ if __name__=="__main__":
     range2=(0.,2,0.02)
 
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
-    l=linearModelEnsemble_JSurf(truth,truth,[0.05,0.05,0.05],100,10,0.5,rand_obs_y=True)
+    l=linearModelEnsemble_JSurf(truth,truth,[0.05,0.05,0.05],100,10,0.01,rand_obs_y=True)
     
     l.write_files()
     l.write_JSurface_xeval_file(range1=range1,range2=range2)

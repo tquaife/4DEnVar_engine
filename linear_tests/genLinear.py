@@ -74,6 +74,7 @@ class linearModelEnsemble:
             plt.show()
         else:    
             plt.savefig(filename)
+        plt.clf()
                
     def write_files(self):
     
@@ -87,7 +88,7 @@ class linearModelEnsemble:
             for m in range(self.nobs):
                 for n in range(self.nobs):
                     if n==m:
-                        f.write("%f "%self.obs_uncert)
+                        f.write("%f "%np.power(self.obs_uncert,2))
                     else:
                         f.write("0.0 ")
                 f.write("\n")

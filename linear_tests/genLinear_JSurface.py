@@ -31,13 +31,13 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
         return surf
     
     def get_R_inv(self):
-        R_inv=np.eye(len(self.obs_y))*1./self.obs_uncert
+        R_inv=np.eye(len(self.obs_y))*1./np.power(self.obs_uncert,2)
         return R_inv
     
     def get_B_inv(self):
         B_inv=np.eye(len(self.uncert_prior))
         for i in range(len(self.uncert_prior)):
-            B_inv[i,i]=1./self.uncert_prior[i]
+            B_inv[i,i]=1./np.power(self.uncert_prior[i],2)
         return B_inv
 
     def get_J_4DVar(self, params):
@@ -51,8 +51,8 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
         t2=np.matmul(self.R_inv, np.asarray(hx.eval(self.obs_x))-np.asarray(self.obs_y))
         t2=np.matmul(np.asarray(hx.eval(self.obs_x))-np.asarray(self.obs_y), t2)
         
-        return(t1/2.)
-        #return((t1+t2)/2.)
+        #return(t1/2.)
+        return((t1+t2)/2.)
     
     def get_JSurface_4DVar(self, dims=(0,1),range1=(0,2,0.1),range2=(0,2,0.1)):
         surf=self.get_blank_surface(range1,range2)
@@ -98,6 +98,7 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
         ax2.set_title("4DEnVar") 
         
         plt.savefig("jSurf_compare.png")
+        plt.clf()
     
 if __name__=="__main__":
     import subprocess
@@ -113,13 +114,14 @@ if __name__=="__main__":
     
     l.write_files()
     l.write_JSurface_xeval_file(range1=range1,range2=range2)
-    
+
+    #run the 4DEnVar surface generator via a subprocess    
     data=subprocess.run(["../4DEnVar_surf","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat","0x_eval.dat"],capture_output=True)
     data=data.stdout.decode("utf-8").rstrip().split("\n")
         
     l.plot_JSurface_compare(data, range1=range1,range2=range2)
     
-    #run the 4DEnVar via a subprocess
+    #run the 4DEnVar optimiser via a subprocess
     out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
@@ -128,7 +130,7 @@ if __name__=="__main__":
     for i in range(len(truth)):
         analysis.append(float(out[i]))
             
-    plt.clf()
+    
     l.plot(filename="jSurf_modelfit.png",analysis=analysis)
 
     
