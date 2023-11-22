@@ -82,45 +82,74 @@ class linearModelEnsemble_JSurf(linearModelEnsemble):
                     f.write("%f "%params[k])
                 f.write("\n")
 
-    def plot_JSurface_compare(self, data, dims=(0,1),range1=(0,2,0.1),range2=(0,2,0.1)):
-        
-        surf_4DEnVar=self.get_JSurface_4DEnVar(data, dims,range1,range2)
-        surf_4DVar=self.get_JSurface_4DVar(dims,range1,range2)
+def plot_JSurface_compare(linear, data, analysis, dims=(0,1),range1=(0,2,0.1),range2=(0,2,0.1), filename=None):
     
-        minmin = np.min([np.min(surf_4DEnVar), np.min(surf_4DVar)])
-        maxmax = np.max([np.max(surf_4DEnVar), np.max(surf_4DVar)])    
+    surf_4DEnVar=linear.get_JSurface_4DEnVar(data, dims,range1,range2)
+    surf_4DVar=linear.get_JSurface_4DVar(dims,range1,range2)
+
+    jmin = np.min([np.min(surf_4DEnVar), np.min(surf_4DVar)])
+    jmax = np.max([np.max(surf_4DEnVar), np.max(surf_4DVar)])    
+
+    fig, ax = plt.subplots(2, 2)
+
+    #contour plots    
+    cmap="inferno_r"
+    #ax[0,0].imshow(surf_4DVar, cmap=cmap, vmin=jmin, vmax=jmax, extent=[range1[0],range1[1],range2[0],range2[1]])
+    cs=ax[0,0].contourf(np.log(surf_4DVar), cmap=cmap, extent=[range1[0],range1[1],range2[0],range2[1]])
+    ax[0,0].axis('square')
+    ax[0,0].set_title("4DVar") 
+    #ax[0,1].imshow(surf_4DEnVar, cmap=cmap, vmin=jmin, vmax=jmax, extent=[range1[0],range1[1],range2[0],range2[1]])
+    ax[0,1].contourf(np.log(surf_4DEnVar), cmap=cmap, levels=cs.levels, extent=[range1[0],range1[1],range2[0],range2[1]])
+    ax[0,1].axis('square')
+    ax[0,1].set_title("4DEnVar") 
+
+    #scatter plot
+    ax[1,0].plot(np.ndarray.flatten(surf_4DEnVar),np.ndarray.flatten(surf_4DVar),"k.", markersize=0.1)
+    ax[1,0].plot([jmin,jmax],[jmin,jmax],"k--", linewidth=0.1)
+    ax[1,0].set_xlabel("J - 4DEnVar")
+    ax[1,0].set_ylabel("J - 4DVar")
+    ax[1,0].axis('square')
     
-        fig, (ax1, ax2) = plt.subplots(1, 2)
-        
-        ax1.imshow(surf_4DVar, cmap='tab20c', vmin=minmin, vmax=maxmax, extent=[range1[0],range1[1],range2[0],range2[1]])
-        ax1.set_title("4DVar") 
-        ax2.imshow(surf_4DEnVar, cmap='tab20c', vmin=minmin, vmax=maxmax, extent=[range1[0],range1[1],range2[0],range2[1]])
-        ax2.set_title("4DEnVar") 
-        
-        plt.savefig("jSurf_compare.png")
-        plt.clf()
+    #model fit summary:
+    a=linear.range[0]
+    b=linear.range[1]
+    x=np.arange(a,b,(b-a)/100.)
+    for n in range(linear.nens):
+        ax[1,1].plot(x,linear.ensemble[n].eval(x),'k',alpha=0.2)
+    ax[1,1].plot(x,linear.truth.eval(x),'r')
+    ax[1,1].plot(linear.obs_x,linear.obs_y,'.r')
+    l=linearModel(analysis)
+    ax[1,1].plot(x,l.eval(x),'g')            
+    ax[1,1].set_xlim(linear.range)
+    ax[1,1].set_ylim((linear.truth.eval(a),linear.truth.eval(b)))
+    ax[1,1].set_aspect(abs( (a-b)/(linear.truth.eval(a)-linear.truth.eval(b))))
+
+    plt.tight_layout()
+
+    if filename is None:
+        plt.show()
+    else:
+        plt.savefig(filename)
+    plt.clf()
     
 if __name__=="__main__":
     import subprocess
-
-    truth=[0.75,1.25,2.]
 
     #ranges for error surface calculation
     range1=(0.,2,0.01)
     range2=(0.,2,0.01)
 
+    truth=[0.75,1.25,2.]
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
-    l=linearModelEnsemble_JSurf(truth,[1.,1.,2.0],[0.5,0.5,0.5],50,10,0.1)
+    l=linearModelEnsemble_JSurf(truth,[1.,1.,2.0],[0.5,0.5,0.5],100,10,0.01)
     
     l.write_files()
     l.write_JSurface_xeval_file(range1=range1,range2=range2)
 
     #run the 4DEnVar surface generator via a subprocess    
     data=subprocess.run(["../4DEnVar_surf","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat","0x_eval.dat"],capture_output=True)
-    data=data.stdout.decode("utf-8").rstrip().split("\n")
-        
-    l.plot_JSurface_compare(data, range1=range1,range2=range2)
-    
+    surface=data.stdout.decode("utf-8").rstrip().split("\n")
+            
     #run the 4DEnVar optimiser via a subprocess
     out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
@@ -129,9 +158,10 @@ if __name__=="__main__":
     analysis=[]    
     for i in range(len(truth)):
         analysis.append(float(out[i]))
+
+    plot_JSurface_compare(l, surface, analysis, range1=range1,range2=range2, filename='linear_fit_summary.png')
             
     
-    l.plot(filename="jSurf_modelfit.png",analysis=analysis)
 
     
     
