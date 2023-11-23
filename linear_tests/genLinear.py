@@ -121,7 +121,7 @@ if __name__=="__main__":
 
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
     truth=[2.,1.1,0.]
-    l=linearModelEnsemble(truth,[1.,0.5,0.3],[0.2,0.2,0.2],20,10,0.01)
+    l=linearModelEnsemble(truth,[1.,0.5,0.3],[0.2,0.2,0.2],20,10,0.01,rand_obs_y=True)
     l.write_files()
         
     #run the 4DEnVar via a subprocess
@@ -134,7 +134,7 @@ if __name__=="__main__":
         analysis.append(float(out[i]))
             
     print(analysis)
-    #l.plot(filename="linear_example.png",analysis=analysis)
-    l.plot(analysis=analysis)
+    l.plot(filename="linear_example.png",analysis=analysis)
+    #l.plot(analysis=analysis)
 
 
