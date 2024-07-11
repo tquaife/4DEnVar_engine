@@ -26,6 +26,7 @@ class simpleEcosystem:
         out_s1=[]
         out_f=[]
         self.s1=self.s1_ini
+        self.ts=0
         for n in range(nts):
             f=self.forcing()
             self.integrate_ts(f)
@@ -54,6 +55,9 @@ class simpleEcosystemEnsemble:
 
     def gen_obs(self):    
         self.obs_x=np.random.rand(self.nobs)
+        #sort not needed, but makes looking at
+        #the outputs a bit more intuitive:
+        self.obs_x.sort()
         self.obs_x=np.asarray(self.obs_x*self.n_ts,dtype=int)
         (_,state)=self.truth.run_model(self.n_ts)        
         self.obs_y=state[self.obs_x]+np.random.randn(self.nobs)*self.obs_uncert
@@ -102,16 +106,17 @@ class simpleEcosystemEnsemble:
             for n in range(self.nens):
                 (_,state)=self.ensemble[n].run_model(self.n_ts)
                 ens.append(state)   
-            for m in range(self.nobs):
+            for mx in self.obs_x:
                 for n in range(self.nens):
-                    f.write("%f "%ens[n][self.obs_x[m]])
+                    f.write("%f "%ens[n][mx])
                 f.write("\n")
              
         #predicted observations from expected value of 
         #the prior distribution:
         with open("0hxbar.dat","w") as f:
-            for m in range(self.nobs):
-                f.write("%f\n"%self.obs_y[m])
+            (_,state)=self.prior.run_model(self.n_ts)
+            for mx in self.obs_x: 
+                f.write("%f\n"%state[mx])
              
 
 
@@ -122,21 +127,21 @@ class simpleEcosystemEnsemble:
         for n in range(self.nens):
             (_,state)=self.ensemble[n].run_model(self.n_ts)        
             if n==0:
-                plt.plot(x,state,"b-",alpha=0.2,label="HX'b")
+                plt.plot(x,state,"y-",alpha=0.2,label="HX'b")
             else:    
-                plt.plot(x,state,"b-",alpha=0.2)
+                plt.plot(x,state,"y-",alpha=0.2)
  
         (_,true_state)=self.truth.run_model(self.n_ts)        
-        plt.plot(x,true_state,"r-",label="truth")
-        plt.plot(self.obs_x,self.obs_y,"ro",label="y")
+        plt.plot(x,true_state,"g-",label="truth")
+        plt.plot(self.obs_x,self.obs_y,"go",label="y",linewidth=2.0)
 
         (_,prior_state)=self.prior.run_model(self.n_ts)        
-        plt.plot(x,prior_state,"g-",label="h(xb)")
+        plt.plot(x,prior_state,"y-",label="h(xb)",linewidth=2.0)
 
         if analysis is not None:
             posterior=simpleEcosystem(s1=analysis[0],p1=analysis[1],p2=analysis[2])
             (_,posterior_state)=posterior.run_model(self.n_ts)        
-            plt.plot(x,posterior_state,"y-",label="post")            
+            plt.plot(x,posterior_state,"r-",label="post",linewidth=2)            
 
         plt.xlabel("time step")
         plt.ylabel("model state")
@@ -158,7 +163,6 @@ def do_4denvar():
     return analysis
 
 
-
 def simple_model_run():
     """simple demo function for testing
     """
@@ -174,13 +178,13 @@ def simple_model_run():
 if __name__=="__main__":
 
     
-    n_ts=365*10
-    coefs_truth=(90,0.4,0.0015)
-    coefs_prior=(100,0.5,0.001)
-    uncert_prior=(20,0.1,0.0002)
-    nobs=100
-    nens=40
-    obs_uncert=1 #stddev
+    n_ts=int(365*10)
+    coefs_truth=(100,0.4,0.001)
+    coefs_prior=(250,0.5,0.001)
+    uncert_prior=(50,0.05,0.0002)
+    nobs=5
+    nens=20
+    obs_uncert=10 #stddev
     s=simpleEcosystemEnsemble(n_ts,coefs_truth,coefs_prior,uncert_prior,nens,nobs,obs_uncert)
     s.write_files()
 
