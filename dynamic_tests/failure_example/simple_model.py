@@ -51,8 +51,8 @@ class simpleEcosystemEnsemble:
     def __init__(self, n_ts, coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert ):
 
         self.n_ts=n_ts
-        self.truth=simpleEcosystem(s1=coefs_truth[0],p1=coefs_truth[1],p2=coefs_truth[2]) 
-        #self.truth=simpleEcosystem_newF(s1=coefs_truth[0],p1=coefs_truth[1],p2=coefs_truth[2]) 
+        #self.truth=simpleEcosystem(s1=coefs_truth[0],p1=coefs_truth[1],p2=coefs_truth[2]) 
+        self.truth=simpleEcosystem_newF(s1=coefs_truth[0],p1=coefs_truth[1],p2=coefs_truth[2]) 
         self.prior=simpleEcosystem(s1=coefs_prior[0],p1=coefs_prior[1],p2=coefs_prior[2])
 
         self.coefs_prior=coefs_prior 
@@ -165,7 +165,7 @@ class simpleEcosystemEnsemble:
 
 def do_4denvar():
     #run the 4DEnVar via a subprocess
-    out=subprocess.run(["../4DEnVar","0xb.dat","0HXb.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
+    out=subprocess.run(["../../4DEnVar","0xb.dat","0HXb.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
     #read the results of the analysis
@@ -190,17 +190,19 @@ def simple_model_run():
 
 if __name__=="__main__":
 
-    nyears=4
+    nyears=2
     n_ts=int(365*nyears)
     coefs_truth=(100,0.4,0.001)
     coefs_prior=(250,0.5,0.001)
-    uncert_prior=(30,0.05,0.0002)
+    uncert_prior=(50,0.05,0.0002)
     #uncert_prior=(5,0.005,0.00002)
     nobs=10
     nens=20
-    obs_uncert=10 #stddev
+    obs_uncert=1 #stddev
     s=simpleEcosystemEnsemble(n_ts,coefs_truth,coefs_prior,uncert_prior,nens,nobs,obs_uncert)
-    s.write_files()
+    #turned off writing to preserve the 
+    #specific case previously generated
+    #s.write_files()
 
     analysis=do_4denvar()
     print(coefs_prior)
