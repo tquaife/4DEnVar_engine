@@ -55,6 +55,9 @@ class simpleEcosystemEnsemble:
         
         self.coefs_truth=(100,0.4,0.001)
         self.coefs_prior=(250,0.5,0.001)
+        
+        #not used, but for prosperity:
+        self.uncert_prior=(50,0.05,0.0002)
 
         self.truth=simpleEcosystem_newF(s1=self.coefs_truth[0],p1=self.coefs_truth[1],p2=self.coefs_truth[2]) 
         self.prior=simpleEcosystem(s1=self.coefs_prior[0],p1=self.coefs_prior[1],p2=self.coefs_prior[2])
