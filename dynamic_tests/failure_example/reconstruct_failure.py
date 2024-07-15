@@ -55,6 +55,9 @@ class simpleEcosystemEnsemble:
         
         self.coefs_truth=(100,0.4,0.001)
         self.coefs_prior=(250,0.5,0.001)
+        
+        #not used, but for prosperity:
+        self.uncert_prior=(50,0.05,0.0002)
 
         self.truth=simpleEcosystem_newF(s1=self.coefs_truth[0],p1=self.coefs_truth[1],p2=self.coefs_truth[2]) 
         self.prior=simpleEcosystem(s1=self.coefs_prior[0],p1=self.coefs_prior[1],p2=self.coefs_prior[2])
@@ -72,6 +75,8 @@ class simpleEcosystemEnsemble:
         self.hxb_bar=np.genfromtxt("0hxbar.dat")
         self.obs_x=np.genfromtxt("0obs_x.dat")
         self.obs_y=np.genfromtxt("0y.dat")
+        self.w=np.genfromtxt("0w.dat")
+        self.HXb=np.genfromtxt("0HXb.dat")
 
 
     def plot(self,analysis=None):
@@ -81,29 +86,60 @@ class simpleEcosystemEnsemble:
         for n in range(self.nens):
             (_,state)=self.ensemble[n].run_model(self.n_ts)        
             if n==0:
-                plt.plot(x,state,"y-",alpha=0.2,label="HX'b")
+                plt.plot(x,state,"y-",alpha=0.2,label="ensemble")
             else:    
                 plt.plot(x,state,"y-",alpha=0.2)
 
+        #prior
         (_,prior_state)=self.prior.run_model(self.n_ts)        
-        plt.plot(x,prior_state,"y-",label="h(xb)",linewidth=2.0)
+        plt.plot(x,prior_state,"y-",label="prior",linewidth=2.0)
  
+        #truth
         (_,true_state)=self.truth.run_model(self.n_ts)        
         plt.plot(x,true_state,"g-",label="truth")
-        plt.plot(self.obs_x,self.obs_y,"go",label="y",linewidth=2.0)
-
+        plt.plot(self.obs_x,self.obs_y,"go",label="obs",linewidth=2.0)
 
         if analysis is not None:
+            #posterior
             posterior=simpleEcosystem(s1=analysis[0],p1=analysis[1],p2=analysis[2])
             (_,posterior_state)=posterior.run_model(self.n_ts)        
-            plt.plot(x,posterior_state,"r-",label="post",linewidth=2)            
+            plt.plot(x,posterior_state,"r-",label="posterior",linewidth=2)            
+
+            #linearised predicted obs
+
+            #linearised predicted obs
+            pert=1./np.sqrt(self.nens-1)*pert_matrix(self.HXb,self.hxb_bar)
+            taylor_y=np.matmul(pert,self.w)+self.hxb_bar
+            plt.plot(self.obs_x,taylor_y,"b+",label="HX'b*w+h(xb)",linewidth=2.0,markersize=10.0)
+
+                   
+            #HXbw_plus_hxb=np.matmul(self.HXb,w)+self.hxb_bar
+            #plt.plot(self.obs_x,HXbw_plus_hxb,"bo",label="HX'b*w+h(xb)",linewidth=2.0)
+            
 
         plt.xlabel("time step")
         plt.ylabel("model state")
         plt.legend()
 
-        plt.plot()
-        plt.show()
+        #plt.gca().set_ylim(bottom=0)
+        #fig = plt.gcf()
+        #fig.set_size_inches(12, 5)
+        #plt.show()
+  
+        plt.xlim((0,730))       
+        plt.rcParams.update({'font.size': 22})
+        plt.gca().set_ylim(bottom=0)
+        fig = plt.gcf()
+        fig.set_size_inches(12, 5)
+        plt.savefig("simple_ecosystem_failure_example.png", bbox_inches='tight', pad_inches=0)
+
+
+def pert_matrix(M,v):
+    P=np.zeros(M.shape)
+    for iy, ix in np.ndindex(M.shape):
+        P[iy,ix]=M[iy,ix]-v[iy]
+    return P
+
 
 def do_4denvar():
     #run the 4DEnVar via a subprocess
@@ -127,9 +163,9 @@ if __name__=="__main__":
     #s.plot()
 
     analysis=do_4denvar()
-    print(s.coefs_prior)
-    print(s.coefs_truth)
-    print(analysis)
+    print("prior:",list(s.coefs_prior))
+    print("truth:",list(s.coefs_truth))
+    print("postr:",list(analysis))
     s.plot(analysis=analysis)
 
 

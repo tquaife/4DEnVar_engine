@@ -2,6 +2,16 @@
 #include<math.h>
 
 
+#define PRIOR_WEIGHT 1.0
+#define EVIL_TWIN 1
+
+
+#ifdef EVIL_TWIN
+    static FILE *jfp;
+#endif
+
+
+
 double fourDEnVar_JEval( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar, gsl_vector * x_eval )
 /*
 Return the value of the cost function (J) for the parameters in x
@@ -111,6 +121,10 @@ gsl_vector * xa     --- the analysis vector (n_dims rows)
     solver_type = gsl_multimin_fdfminimizer_vector_bfgs2;
     solver = gsl_multimin_fdfminimizer_alloc (solver_type, w->size);
 
+#ifdef EVIL_TWIN
+    jfp=fopen("0J.dat","w");
+#endif
+
     /*invert the R matrix*/
     gsl_linalg_LU_decomp(R, p, &signum);
     gsl_linalg_LU_invert(R, p, R_inv);
@@ -165,12 +179,26 @@ gsl_vector * xa     --- the analysis vector (n_dims rows)
         status = gsl_multimin_test_gradient(solver->gradient, 1e-16);
     } while (status == GSL_CONTINUE && iter < 100);
 
-    //printf("## n_iter=%ld stat=%d (enoprog=%d)\n", iter, status, GSL_ENOPROG);
+    //fprintf(stderr,"## n_iter=%ld stat=%d (enoprog=%d)\n", iter, status, GSL_ENOPROG);
+
+#ifdef EVIL_TWIN
+    FILE *fp;
+    fp=fopen("0w.dat","wa");
+    for(int i;i<w->size;i++)
+        fprintf(fp,"%f\n",gsl_vector_get(solver->x,i));
+    fclose(fp);
+#endif
+
 
     /*translate w back into observation space*/
     /*n.b. writing the answer (xa) over xb_bar as we need to 
     add that back in anyway, so convenient given dgemv */
     gsl_blas_dgemv(CblasNoTrans, 1.0,X_dash_b, solver->x, 1.0, xb_bar);
+
+#ifdef EVIL_TWIN
+    fclose(jfp);
+#endif
+
 
     return(xb_bar);
 }
@@ -332,7 +360,11 @@ double fourDEnVar_cost_f(const gsl_vector *w, void *p)
     /* work2 should now be (HX'b*w+hx-y)*/
     gsl_blas_ddot(work1, work2, &obs_term);
     
-    J=0.5*bgrnd_term+0.5*obs_term;    
+#ifdef EVIL_TWIN    
+    fprintf(jfp,"%f %f\n",0.5*PRIOR_WEIGHT*bgrnd_term, 0.5*obs_term);
+#endif    
+    
+    J=0.5*PRIOR_WEIGHT*bgrnd_term+0.5*obs_term;    
     return(J);    
 }
 
@@ -368,7 +400,7 @@ void fourDEnVar_cost_df(const gsl_vector *w, void *p, gsl_vector *df)
     /*copy w into df and add it onto the matrix-vector
     product (HX'b)^T * R^-1*(HX'b*w+hx-y) */
     gsl_vector_memcpy(df,w);
-    gsl_blas_dgemv(CblasTrans, 1.0, HX_dash_b, work1, 1.0, df);
+    gsl_blas_dgemv(CblasTrans, 1.0, HX_dash_b, work1, PRIOR_WEIGHT*1.0, df);
    
     /*df should now be: 
         w + (HX'b)^T*R^-1*(HX'b*w+hx-y) 

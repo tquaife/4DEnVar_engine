@@ -173,7 +173,7 @@ class simpleEcosystemEnsemble:
 
 def do_4denvar():
     #run the 4DEnVar via a subprocess
-    out=subprocess.run(["../4DEnVar","0xb.dat","0HXb.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
+    out=subprocess.run(["../../4DEnVar","0xb.dat","0HXb.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
     #read the results of the analysis
@@ -202,7 +202,9 @@ if __name__=="__main__":
     n_ts=int(365*nyears)
     coefs_truth=(100,0.4,0.001)
     coefs_prior=(250,0.5,0.001)
-    uncert_prior=(50,0.05,0.0002)
+    
+    #uncert_prior=(200,0.1,0.001) #<-very big    
+    uncert_prior=(50,0.05,0.0002) #<-this is the original
     #uncert_prior=(5,0.005,0.00002)
     nobs=10
     nens=20
