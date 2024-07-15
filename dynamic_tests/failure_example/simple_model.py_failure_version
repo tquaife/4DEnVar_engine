@@ -90,6 +90,14 @@ class simpleEcosystemEnsemble:
             for n in range(self.nobs):
                 f.write("%f\n"%self.obs_y[n])
 
+
+        #observations xpos - not needed for 4DEnVar
+        #but useful for some analysis
+        with open("0obs_x.dat","w") as f:
+            for n in range(self.nobs):
+                f.write("%f\n"%self.obs_y[n])
+
+
         #R matrix:
         with open("0R.dat","w") as f:
             for m in range(self.nobs):
@@ -165,7 +173,7 @@ class simpleEcosystemEnsemble:
 
 def do_4denvar():
     #run the 4DEnVar via a subprocess
-    out=subprocess.run(["../../4DEnVar","0xb.dat","0HXb.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
+    out=subprocess.run(["../4DEnVar","0xb.dat","0HXb.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
     #read the results of the analysis
@@ -200,9 +208,7 @@ if __name__=="__main__":
     nens=20
     obs_uncert=1 #stddev
     s=simpleEcosystemEnsemble(n_ts,coefs_truth,coefs_prior,uncert_prior,nens,nobs,obs_uncert)
-    #turned off writing to preserve the 
-    #specific case previously generated
-    #s.write_files()
+    s.write_files()
 
     analysis=do_4denvar()
     print(coefs_prior)

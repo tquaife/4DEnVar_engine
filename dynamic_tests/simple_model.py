@@ -90,6 +90,14 @@ class simpleEcosystemEnsemble:
             for n in range(self.nobs):
                 f.write("%f\n"%self.obs_y[n])
 
+
+        #observations xpos - not needed for 4DEnVar
+        #but useful for some analysis
+        with open("0obs_x.dat","w") as f:
+            for n in range(self.nobs):
+                f.write("%f\n"%self.obs_y[n])
+
+
         #R matrix:
         with open("0R.dat","w") as f:
             for m in range(self.nobs):
@@ -190,7 +198,7 @@ def simple_model_run():
 
 if __name__=="__main__":
 
-    nyears=4
+    nyears=2
     n_ts=int(365*nyears)
     coefs_truth=(100,0.4,0.001)
     coefs_prior=(250,0.5,0.001)
