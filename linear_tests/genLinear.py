@@ -53,23 +53,33 @@ class linearModelEnsemble:
         else:
             self.obs_y=self.truth.eval(self.obs_x)
             
-    def plot(self,filename=None,analysis=None):
+    def plot(self,filename=None,analysis=None,analysis_linear=None):
         a=self.range[0]
         b=self.range[1]
         x=np.arange(a,b,(b-a)/100.)
     
         for n in range(self.nens):
-            plt.plot(x,self.ensemble[n].eval(x),'k',alpha=0.2)
+            if n==0:
+                plt.plot(x,self.ensemble[n].eval(x),'k',alpha=0.2,label="ensemble")
+            else:    
+                plt.plot(x,self.ensemble[n].eval(x),'k',alpha=0.2)
     
-        plt.plot(x,self.truth.eval(x),'r')
-        plt.plot(self.obs_x,self.obs_y,'.r')
+        plt.plot(x,self.truth.eval(x),'r',label="truth")
+        plt.plot(self.obs_x,self.obs_y,'.r',label="observations")
     
         if analysis is not None:
             l=linearModel(analysis)
-            plt.plot(x,l.eval(x),'g')            
+            plt.plot(x,l.eval(x),'g',linewidth=3,label="variational J w/ BFGS")            
+
+        if analysis_linear is not None:
+            l=linearModel(analysis_linear)
+            plt.plot(x,l.eval(x),'y-.',label="regularised linear")            
+    
+
     
         plt.xlim(self.range)
         plt.ylim((self.truth.eval(a),self.truth.eval(b)))
+        plt.legend()
         if filename is None:
             plt.show()
         else:    
@@ -128,13 +138,20 @@ if __name__=="__main__":
     out=subprocess.run(["../4DEnVar","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
+    #run the linear 4DEnVar solver via a subprocess
+    out_linear=subprocess.run(["../4DEnVar_linear","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
+    out_linear=out_linear.stdout.decode("utf-8").rstrip().split("\n")
+
     #read the results of the analysis
     analysis=[]    
+    analysis_linear=[]    
     for i in range(len(truth)):
         analysis.append(float(out[i]))
+        analysis_linear.append(float(out_linear[i]))
             
     print(analysis)
-    l.plot(filename="linear_example.png",analysis=analysis)
+    print(analysis_linear)
+    l.plot(filename="linear_example.png",analysis=analysis, analysis_linear=analysis_linear)
     #l.plot(analysis=analysis)
 
 

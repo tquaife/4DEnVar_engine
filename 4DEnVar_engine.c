@@ -175,6 +175,107 @@ gsl_vector * xa     --- the analysis vector (n_dims rows)
     return(xb_bar);
 }
 
+gsl_vector * fourDEnVar_linear( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
+/*
+An implementation of 4DEnVar using the linear norm equation of the cost function
+
+arguments:
+
+gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
+gsl_matrix * hx     --- the ensmble of model predicted observations (n_obs cols; e_ens rows)
+gsl_vector * y      --- the observations (n_obs rows)
+gsl_matrix * R      --- the observation uncertainty covariance matrix (n_obs rows; n_obs cols) 
+gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_obs rows)
+
+returns:
+
+gsl_vector * xa     --- the analysis vector (n_dims rows)
+
+[Note - no actual variable called "xa" as we overwrite xb_bar for efficiency ]
+
+*/
+{
+
+    gsl_vector *xb_bar ;
+    gsl_matrix *X_dash_b ;
+    gsl_matrix *HX_dash_b ;
+    gsl_matrix *tmp1 = gsl_matrix_calloc(R->size1, xb->size2);
+    gsl_matrix *tmp2 = gsl_matrix_calloc(xb->size2, xb->size2);
+    gsl_vector *tmp3 = gsl_vector_calloc(xb->size2) ; 
+    gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
+    int nens=xb->size2;
+    float scale ;
+        
+    int signum;
+    gsl_permutation *p_r=gsl_permutation_alloc(R->size1);
+    gsl_permutation *p_p=gsl_permutation_alloc(xb->size2);
+
+    gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
+    gsl_matrix *pseudo = gsl_matrix_calloc(xb->size2, xb->size2);
+
+
+    /*set tmp2 to the identity matrix*/
+    gsl_matrix_set_identity(tmp2);
+
+
+    /*invert the R matrix*/
+    gsl_linalg_LU_decomp(R, p_r, &signum);
+    gsl_linalg_LU_invert(R, p_r, R_inv);
+        
+    /*calculate the mean of each parameter 
+    in the ensemble*/
+    xb_bar = mean_vector_from_matrix(xb);
+
+    /*calculate y-h(xb)
+    n.b. ***overwrites y *** */
+    gsl_vector_sub(y, hx_bar);
+
+    /*calculate the perturbation matrix
+    eqn 21 in Pinnington 2020*/
+    scale=1./sqrt((float)nens-1.);
+    X_dash_b = perturbation_matrix(xb,xb_bar,scale);
+
+    /*calculate HXb matrix
+    eqn 26 in Pinnington 2020
+    */
+    HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
+
+
+    /*calculate R^-1*(HXb), place into tmp1 and then
+    calculate (HXb)^T.R^-1*(HXb)+I
+    NOTE: tmp2 hase been initialised to I above
+    and is overwritten*/
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0, R_inv, HX_dash_b, 0.0, tmp1);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans,1.0, HX_dash_b, tmp1, 1.0, tmp2);
+
+    /*invert the (HXb)^T.R^-1*(HXb)+I matrix*/
+    gsl_linalg_LU_decomp(tmp2, p_p, &signum);
+    gsl_linalg_LU_invert(tmp2, p_p, pseudo);
+        
+    /*calculate R^-1*(y-hx_bar)
+    and then (HXb)^T.R^-1*(y-hx_bar)
+    NOTE: hx_bar gets overwritten in the 
+    first operation (and y has already been 
+    overwritten to contain y-hx_bar)
+    */
+    gsl_blas_dgemv(CblasNoTrans,1.0, R_inv, y,0.0, hx_bar); 
+    gsl_blas_dgemv(CblasTrans,1.0, HX_dash_b, hx_bar,0.0, tmp3); 
+
+    /*multiply the pseudo inverse (HXb)^T.R^-1*(HXb)+I)^-1
+    with (HXb)^T.R^-1*(y-hx_bar) to get the weights:
+    */
+    gsl_blas_dgemv(CblasTrans,1.0, pseudo, tmp3,0.0, w); 
+
+    /*translate w back into observation space*/
+    /*n.b. writing the answer (xa) over xb_bar as we need to 
+    add that back in anyway, so convenient given dgemv */
+    gsl_blas_dgemv(CblasNoTrans, 1.0,X_dash_b, w, 1.0, xb_bar);
+
+    return(xb_bar);
+}
+
+
+
 
 gsl_matrix * fourDEnVar_sample_posterior( gsl_matrix * xb, gsl_matrix * hx, gsl_matrix * R, gsl_vector * hx_bar, gsl_vector *xa )
 /*
@@ -464,4 +565,27 @@ Print an ascii representation of the GSL matrix gmat to the stdout
     }
     return;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
