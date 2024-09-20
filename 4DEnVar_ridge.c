@@ -149,7 +149,8 @@ hx_bar - vector of predicted observations from mean parameters
     R       =load_ffMatrix_to_gsl_matrix(argv[4]);
     hx_bar  =load_ffMatrix_to_gsl_vector(argv[5]);
 
-    xa = fourDEnVar_linear( xb, hx, y, R, hx_bar );
+    //xa = fourDEnVar_linear( xb, hx, y, R, hx_bar );
+    xa = fourDEnVar_ridge_SVD( xb, hx, y, R, hx_bar );
     Xa = fourDEnVar_sample_posterior( xb, hx, R, hx_bar, xa );
 
     print_gsl_vector(xa);

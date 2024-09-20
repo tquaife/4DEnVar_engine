@@ -10,7 +10,7 @@ INCLS = -I./ -I/usr/include/gsl
 4DEnVar_surf:	4DEnVar_surf.o 4DEnVar_engine.o matrixio.o
 		${CC} ${CFLAGS} $@.o -o $@ matrixio.o 4DEnVar_engine.o ${INCLS} ${LIBS}
 
-4DEnVar_linear:	4DEnVar_linear.o 4DEnVar_engine.o matrixio.o
+4DEnVar_ridge:	4DEnVar_ridge.o 4DEnVar_engine.o matrixio.o
 		${CC} ${CFLAGS} $@.o -o $@ matrixio.o 4DEnVar_engine.o ${INCLS} ${LIBS}
 
 

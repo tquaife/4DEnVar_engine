@@ -74,7 +74,7 @@ An implementation of 4DEnVar as described in: Pinnington, E., Quaife, T., Lawles
 arguments:
 
 gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
-gsl_matrix * hx     --- the ensmble of model predicted observations (n_obs cols; e_ens rows)
+gsl_matrix * hx     --- the ensemble of model predicted observations (n_obs cols; e_ens rows)
 gsl_vector * y      --- the observations (n_obs rows)
 gsl_matrix * R      --- the observation uncertainty covariance matrix (n_obs rows; n_obs cols) 
 gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_obs rows)
@@ -175,14 +175,22 @@ gsl_vector * xa     --- the analysis vector (n_dims rows)
     return(xb_bar);
 }
 
+
 gsl_vector * fourDEnVar_linear( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
+/* A wrapper to fourDEnVar_ridge_explicit_inverse() for the sake of backward compatibility.*/
+{return(fourDEnVar_ridge_explicit_inverse(xb, hx, y, R, hx_bar));}
+
+
+gsl_vector * fourDEnVar_ridge_explicit_inverse( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
 /*
-An implementation of 4DEnVar using the linear norm equation of the cost function
+An implementation of 4DEnVar using the ridge regression form of the cost function
+This version calculates an explicit inverse, which could potentially cause problems
+in some situations.
 
 arguments:
 
 gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
-gsl_matrix * hx     --- the ensmble of model predicted observations (n_obs cols; e_ens rows)
+gsl_matrix * hx     --- the ensemble of model predicted observations (n_obs cols; e_ens rows)
 gsl_vector * y      --- the observations (n_obs rows)
 gsl_matrix * R      --- the observation uncertainty covariance matrix (n_obs rows; n_obs cols) 
 gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_obs rows)
@@ -288,7 +296,7 @@ Corrects some errors from that paper.
 arguments:
 
 gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
-gsl_matrix * hx     --- the ensmble of model predicted observations (n_obs cols; e_ens rows)
+gsl_matrix * hx     --- the ensemble of model predicted observations (n_obs cols; e_ens rows)
 gsl_matrix * R      --- the observation uncertainty covariance matrix (n_obs rows; n_obs cols) 
 gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_obs rows)
 gsl_vector * xa     --- the analysis vector (n_dims rows) [i.e. returned from fourDEnVar()]
@@ -567,6 +575,128 @@ Print an ascii representation of the GSL matrix gmat to the stdout
 }
 
 
+/*
+#######################################################
+#######################################################
+Code below here is in development
+#######################################################
+#######################################################
+*/
+
+
+
+gsl_vector * fourDEnVar_ridge_SVD( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
+/*
+An implementation of 4DEnVar using the ridge regression form of the cost function
+This version uses inbuilt routines from the GSL, that use an SVD, to solve the system.
+
+For more details, see:
+https://www.gnu.org/software/gsl/doc/html/lls.html#c.gsl_multifit_linear
+
+arguments:
+
+gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
+gsl_matrix * hx     --- the ensemble of model predicted observations (n_obs cols; e_ens rows)
+gsl_vector * y      --- the observations (n_obs rows)
+gsl_matrix * R      --- the observation uncertainty covariance matrix (n_obs rows; n_obs cols) 
+gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_obs rows)
+
+returns:
+
+gsl_vector * xa     --- the analysis vector (n_dims rows)
+
+[Note - no actual variable called "xa" as we overwrite xb_bar for efficiency ]
+
+*/
+{
+
+    gsl_vector *xb_bar ;
+    gsl_matrix *X_dash_b ;
+    gsl_matrix *HX_dash_b ;
+    gsl_matrix *tmp1 = gsl_matrix_calloc(R->size1, xb->size2);
+    gsl_matrix *tmp2 = gsl_matrix_calloc(xb->size2, xb->size2);
+    gsl_matrix *cov = gsl_matrix_calloc(xb->size2, xb->size2);
+    gsl_vector *tmp3 = gsl_vector_calloc(xb->size2) ; 
+    
+    gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(xb->size2, xb->size2);
+    
+    gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
+    int nens=xb->size2;
+    float scale ;
+    
+    double chisq;
+        
+    int signum;
+    gsl_permutation *p_r=gsl_permutation_alloc(R->size1);
+    gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
+
+    /*set tmp2 to the identity matrix*/
+    gsl_matrix_set_identity(tmp2);
+
+    /*invert the R matrix*/
+    gsl_linalg_LU_decomp(R, p_r, &signum);
+    gsl_linalg_LU_invert(R, p_r, R_inv);
+        
+    /*calculate the mean of each parameter 
+    in the ensemble*/
+    xb_bar = mean_vector_from_matrix(xb);
+
+    /*calculate y-h(xb)
+    n.b. ***overwrites y *** */
+    gsl_vector_sub(y, hx_bar);
+
+    /*calculate the perturbation matrix
+    eqn 21 in Pinnington 2020*/
+    scale=1./sqrt((float)nens-1.);
+    X_dash_b = perturbation_matrix(xb,xb_bar,scale);
+
+    /*calculate HXb matrix
+    eqn 26 in Pinnington 2020
+    */
+    HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
+
+    /*calculate R^-1*(HXb), place into tmp1 and then
+    calculate (HXb)^T.R^-1*(HXb)+I
+    NOTE: tmp2 hase been initialised to I above
+    and is overwritten
+    
+    tmp2 is now the X in y=Xc (using the GSL symbols)
+    */
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0, R_inv, HX_dash_b, 0.0, tmp1);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans,1.0, HX_dash_b, tmp1, 1.0, tmp2);
+        
+    /*calculate the SVD
+    note - these are only needed for the TVSD routines,
+    which we aren't using here. Can be deleted.
+    */
+    //gsl_multifit_linear_svd(tmp2, work);
+    /*or...*/
+    //gsl_multifit_linear_bsvd(tmp2, work);
+
+    /*calculate R^-1*(y-hx_bar)
+    and then (HXb)^T.R^-1*(y-hx_bar)
+    NOTE: hx_bar gets overwritten in the 
+    first operation (and y has already been 
+    overwritten to contain y-hx_bar)
+    
+    tmp3 is now the y in y=Xc (using the GSL symbols)
+    */
+    gsl_blas_dgemv(CblasNoTrans,1.0, R_inv, y,0.0, hx_bar); 
+    gsl_blas_dgemv(CblasTrans,1.0, HX_dash_b, hx_bar,0.0, tmp3); 
+
+    /*compute the solution*/
+    gsl_multifit_linear(tmp2, tmp3, w, cov, &chisq, work);
+
+    /*translate w back into observation space*/
+    /*n.b. writing the answer (xa) over xb_bar as we need to 
+    add that back in anyway, so convenient given dgemv */
+    gsl_blas_dgemv(CblasNoTrans, 1.0,X_dash_b, w, 1.0, xb_bar);
+
+    /*free the work space*/
+    gsl_multifit_linear_free(work);
+
+    return(xb_bar);
+}
 
 
 

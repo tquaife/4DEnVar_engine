@@ -1,6 +1,7 @@
 4DEnVar
 4DEnVar_surf
 4DEnVar_linear
+4DEnVar_ridge
 *.pdf
 *.o
 *~

@@ -139,7 +139,7 @@ if __name__=="__main__":
     out=out.stdout.decode("utf-8").rstrip().split("\n")
 
     #run the linear 4DEnVar solver via a subprocess
-    out_linear=subprocess.run(["../4DEnVar_linear","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
+    out_linear=subprocess.run(["../4DEnVar_ridge","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out_linear=out_linear.stdout.decode("utf-8").rstrip().split("\n")
 
     #read the results of the analysis
