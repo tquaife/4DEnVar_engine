@@ -131,7 +131,7 @@ if __name__=="__main__":
 
     #coefs_truth, coefs_prior, uncert_prior, nens, nobs, obs_uncert
     truth=[2.,1.1,0.]
-    l=linearModelEnsemble(truth,[1.,0.5,0.3],[0.2,0.2,0.2],20,10,0.01,rand_obs_y=True)
+    l=linearModelEnsemble(truth,[1.,0.5,0.3],[0.2,0.2,0.2],10,15,0.1,rand_obs_y=True)
     l.write_files()
         
     #run the 4DEnVar via a subprocess
@@ -141,6 +141,8 @@ if __name__=="__main__":
     #run the linear 4DEnVar solver via a subprocess
     out_linear=subprocess.run(["../4DEnVar_ridge","0xb.dat","0hx.dat","0y.dat","0R.dat","0hxbar.dat"],capture_output=True)
     out_linear=out_linear.stdout.decode("utf-8").rstrip().split("\n")
+
+    #print(out_linear.stderr.decode("utf-8"))
 
     #read the results of the analysis
     analysis=[]    

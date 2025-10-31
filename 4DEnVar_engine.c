@@ -698,6 +698,127 @@ Code below here is in development
 */
 
 
+gsl_vector * fourDEnVar_ridge_GSV( gsl_matrix * xb, gsl_matrix * hx, gsl_vector * y, gsl_matrix * R, gsl_vector * hx_bar )
+/*
+An implementation of 4DEnVar using the ridge regression form of the cost function
+This version uses inbuilt routines from the GSL, that uses GCV, to find a value of the ridge parameter
+
+Fundamentally, this mean the results will be different from other routines due to the variable
+strength of the ridge parameter.
+
+For more details, see:
+https://www.gnu.org/software/gsl/doc/html/lls.html#c.gsl_multifit_linear
+
+arguments:
+
+gsl_matrix * xb     --- the background ensemble of initial state and/or parameters (n_dims cols; n_ens rows)
+gsl_matrix * hx     --- the ensemble of model predicted observations (n_obs cols; e_ens rows)
+gsl_vector * y      --- the observations (n_obs rows)
+gsl_matrix * R      --- the observation uncertainty covariance matrix (n_obs rows; n_obs cols) 
+gsl_vector * hx_bar --- the model predicted observations for the mean of xb (n_obs rows)
+
+returns:
+
+gsl_vector * xa     --- the analysis vector (n_dims rows)
+
+[Note - no actual variable called "xa" as we overwrite xb_bar for efficiency ]
+
+*/
+{
+
+    gsl_vector *xb_bar ;
+    gsl_matrix *X_dash_b ;
+    gsl_matrix *HX_dash_b ;
+    gsl_matrix *HXbRsqrt = gsl_matrix_calloc(R->size1, xb->size2);
+    gsl_matrix *HXbRsqrtT = gsl_matrix_calloc(xb->size2, R->size1);
+    gsl_matrix *I = gsl_matrix_calloc(xb->size2, xb->size2);
+    
+    const size_t npoints = 200; 
+    gsl_vector *reg_param = gsl_vector_alloc(npoints);
+    gsl_vector *G = gsl_vector_alloc(npoints);
+    
+    gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(R->size1, xb->size2);
+    
+    gsl_vector *w = gsl_vector_calloc(xb->size2) ;  /*calloc ensures w=0*/
+    int nens=xb->size2;
+    int i, j;
+    float scale ;
+ 
+    double rnorm, snorm;
+    double lambda_gcv; 
+    double G_gcv;
+        
+    int signum;
+    gsl_permutation *p_r=gsl_permutation_alloc(R->size1);
+    //gsl_matrix *R_inv = gsl_matrix_calloc(R->size1, R->size2);
+    gsl_matrix *R_inv_sqrt = gsl_matrix_calloc(R->size1, R->size2);
+
+
+    /*set the identity matrix*/
+    gsl_matrix_set_identity(I);
+
+    /*invert the R matrix*/
+    gsl_linalg_LU_decomp(R, p_r, &signum);
+    gsl_linalg_LU_invert(R, p_r, R_inv_sqrt);
+   
+    gsl_linalg_cholesky_decomp1(R_inv_sqrt);  
+    for(i=0;i<R->size1;i++)
+        for(j=i+1;j<R->size2;j++)
+           gsl_matrix_set(R_inv_sqrt, i, j, 0.0);
+   
+        
+    /*calculate the mean of each parameter 
+    in the ensemble*/
+    xb_bar = mean_vector_from_matrix(xb);
+
+    /*calculate y-h(xb)
+    n.b. ***overwrites y *** */
+    gsl_vector_sub(y, hx_bar);
+
+    /*calculate the perturbation matrix
+    eqn 21 in Pinnington 2020*/
+    scale=1./sqrt((float)nens-1.);
+    X_dash_b = perturbation_matrix(xb,xb_bar,scale);
+
+    /*calculate HXb matrix
+    eqn 26 in Pinnington 2020
+    */
+    HX_dash_b = perturbation_matrix(hx,hx_bar,scale);
+
+    /*calculate R^-1/2*(HXb), place into tmp1 
+    */
+    //gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0, R_inv_sqrt, HX_dash_b, 0.0, HXbRsqrt);
+    //###gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,1.0, HX_dash_b, R_inv_sqrt, 0.0, HXbRsqrt);
+
+    
+    //gsl_matrix_transpose_memcpy(HXbRsqrtT, HXbRsqrt);
+      
+    /*calculate the SVD*/
+    //gsl_multifit_linear_svd(HXbRsqrt, work);
+    gsl_multifit_linear_svd(HX_dash_b, work);
+    /*or...*/
+    //gsl_multifit_linear_bsvd(HXbRsqrt, work);
+
+
+    /* calculate GCV curve and find its minimum */
+    gsl_multifit_linear_gcv(y, reg_param, G, &lambda_gcv, &G_gcv, work);
+    
+    //fprintf(stderr,"lambda=%f\n",lambda_gcv);
+
+    /* regularize with lambda_gcv */
+    //gsl_multifit_linear_solve(lambda_gcv, HXbRsqrt, y, w, &rnorm, &snorm, work);
+    gsl_multifit_linear_solve(lambda_gcv, HX_dash_b, y, w, &rnorm, &snorm, work);
+
+    /*translate w back into observation space*/
+    /*n.b. writing the answer (xa) over xb_bar as we need to 
+    add that back in anyway, so convenient given dgemv */
+    gsl_blas_dgemv(CblasNoTrans, 1.0,X_dash_b, w, 1.0, xb_bar);
+
+    /*free the work space*/
+    gsl_multifit_linear_free(work);
+
+    return(xb_bar);
+}
 
 
 

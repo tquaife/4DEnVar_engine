@@ -151,6 +151,7 @@ hx_bar - vector of predicted observations from mean parameters
 
     //xa = fourDEnVar_linear( xb, hx, y, R, hx_bar );
     xa = fourDEnVar_ridge_SVD( xb, hx, y, R, hx_bar );
+    //xa = fourDEnVar_ridge_GSV( xb, hx, y, R, hx_bar );
     Xa = fourDEnVar_sample_posterior( xb, hx, R, hx_bar, xa );
 
     print_gsl_vector(xa);
